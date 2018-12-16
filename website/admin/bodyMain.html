@@ -1,0 +1,203 @@
+<!-- mustache Vorlagen -->
+<link href="css/dashboard.css" rel="stylesheet">
+
+<script src="/node_modules/mustache/mustache.js"></script>
+<!-- Geduldspiel zeichnen-->
+<script src="/node_modules/two.js/build/two.min.js"></script>
+<script src="../drawProduct.js"></script>
+<!-- Websocket -->
+
+<script src="/node_modules/socket.io-client/dist/socket.io.js"></script>
+<script>var socket = io();</script>
+
+
+<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <a class="navbar-brand" href="#">mhk <img src="/assets/Logo_2015_ohne_Schrift__weiß_ohne_Hintergrund.png" width="50"
+            height="50" class="d-inline-block" alt=""></a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"
+        aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active" id="dashboard1">
+                <a class="nav-link d-md-none" href="#"><span data-feather="home"></span> Dashboard</a>
+            </li>
+            <li class="nav-item " id="orders1">
+                <a class="nav-link d-md-none" href="#"><span data-feather="box"></span> Bestellungen</a>
+            </li>
+            <li class="nav-item " id="products1">
+                <a class="nav-link d-md-none" href="#"><span data-feather="shopping-cart"></span> Produkte</a>
+            </li>
+            <li class="nav-item " id="giveaways1">
+                <a class="nav-link d-md-none" href="#"><span data-feather="gift"></span> Giveaways</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link d-md-none" href="#" target="_blank" id="loggingPLC1"><span data-feather="layers"></span>
+                    Logging PLC</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link d-md-none" href="#" target="_blank" id="loggingNode1"><span data-feather="layers"></span>
+                    Logging NodeJS</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link d-md-none" href="#" target="_blank" id="filebrowser1"><span data-feather="folder"></span>
+                    Dateibrowser</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link d-md-none" href="#" target="_blank" id="database1"><span data-feather="database"></span>
+                    Datenbank</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link d-md-none" href="#" id="raspberryConfig1"><span data-feather="cpu"></span> 
+                    Raspberry Pi</a>
+            </li>
+        </ul>
+        <ul class="navbar-nav flex-row justify-content-center flex-nowrap">
+            <li class="nav-item"><a class="navbar-brand" href="#">
+                    <img src="/assets/bezirksverband_grau.png" width="100" hseight="42" class="d-inline-block align-top"
+                        alt=""></a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item" id="dashboard2">
+                        <a class="nav-link active" href="#">
+                            <span data-feather="home"></span>
+                            Dashboard <span class="sr-only">(current)</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" id="orders2">
+                        <a class="nav-link" href="#">
+                            <span data-feather="box"></span>
+                            Bestellungen
+                        </a>
+                    </li>
+                    <li class="nav-item" id="products2">
+                        <a class="nav-link" href="#">
+                            <span data-feather="shopping-cart"></span>
+                            Produkte
+                        </a>
+                    </li>
+                    <li class="nav-item" id="giveaways2">
+                        <a class="nav-link" href="#">
+                            <span data-feather="gift"></span>
+                            Giveaways
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" target="_blank" id="loggingPLC2">
+                            <span data-feather="layers"></span>
+                            Logging PLC
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" target="_blank" id="loggingNode2">
+                            <span data-feather="layers"></span>
+                            Logging NodeJS
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" target="_blank" id="filebrowser2">
+                            <span data-feather="folder"></span>
+                            Dateibrowser
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" target="_blank" id="database2">
+                            <span data-feather="database"></span>
+                            Datenbank
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="raspberryConfig2">
+                            <span data-feather="cpu"></span>
+                            Raspberry Pi
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4"></main>
+    </div>
+</div>
+
+<!-- Icons -->
+<script src="/node_modules/feather-icons/dist/feather.min.js"></script>
+<script>
+    feather.replace()
+</script>
+
+
+<!-- Sidebar -->
+<script>
+    $(document).ready(function () {
+
+        $("main").load("dashboard.html");
+        document.getElementById("database1").href = "http://" + window.location.hostname + "/phppgadmin"
+        document.getElementById("database2").href = "http://" + window.location.hostname + "/phppgadmin"
+        document.getElementById("loggingPLC1").href = "http://" + window.location.hostname + ":9002"
+        document.getElementById("loggingPLC2").href = "http://" + window.location.hostname + ":9002"
+        document.getElementById("loggingNode1").href = "http://" + window.location.hostname + ":9003"
+        document.getElementById("loggingNode2").href = "http://" + window.location.hostname + ":9003"
+        document.getElementById("filebrowser1").href = "http://" + window.location.hostname + ":8000"
+        document.getElementById("filebrowser2").href = "http://" + window.location.hostname + ":8000"
+
+        $(".nav .nav-link").on("click", function () {
+            $(".nav").find(".active").removeClass("active");
+            $(this).addClass("active");
+            for (i = 0; i < 100; i++) {
+                window.clearInterval(i); //Um Intervalltimer der Datenanfragen zu stoppen wenn auf neue seite fgewechselt wird
+            }
+        });
+
+
+        $("#dashboard1").click(function () {
+            $("main").load("dashboard.html");
+        });
+        $("#orders1").click(function () {
+            $("main").load("orders.html");
+        });
+        $("#products1").click(function () {
+            $("main").load("products.html");
+        });
+        $("#giveaways1").click(function () {
+            $("main").load("giveaways.html");
+        });
+        $("#loggingPLC1").click(function () {});
+        $("#loggingNode1").click(function () {});
+        $("#filebrowser1").click(function () {});
+        $("#raspberryConfig1").click(function () {
+            $("main").load("raspberryConfig.html");
+        });
+
+        
+
+
+        $("#dashboard2").click(function () {
+            $("main").load("dashboard.html");
+        });
+        $("#orders2").click(function () {
+            $("main").load("orders.html");
+        });
+        $("#products2").click(function () {
+            $("main").load("products.html");
+        });
+        $("#giveaways2").click(function () {
+            $("main").load("giveaways.html");
+        });
+        $("#loggingPLC2").click(function () {});
+        $("#loggingNode2").click(function () {});
+        $("#filebrowser2").click(function () {});
+        $("#raspberryConfig2").click(function () {
+            $("main").load("raspberryConfig.html");
+        });
+    });
+</script>

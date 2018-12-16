@@ -1,0 +1,20 @@
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Raspberry Pi Einstellungen</h1>
+</div>
+<div class="row">
+    <div class="col-4">
+        <div class="list-group">
+            <a class="list-group-item" href="#" id="shutdown">Raspberry Pi herunterfahren</a>
+            <a class="list-group-item" href="#" id="reboot">Raspberry Pi neustarten</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#shutdown").click(function () {
+        socket.emit('raspberryConfig', "shutdown")
+    })
+    $("#reboot").click(function () {
+        socket.emit('raspberryConfig', "reboot")
+    })
+</script>

@@ -1,0 +1,169 @@
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Produkte</h1>
+</div>
+
+<div id="target">Loading...</div>
+<script id="template" type="x-tmpl-mustache">
+    <h4>Giveaway Übersicht</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Fachnummer</th>
+                            <th class="text-center">Artikelname</th>
+                            <th class="text-center">Gewicht</th>
+                            <th class="text-center">Bild</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#giveaways}}
+                        <tr>
+                            <td class="text-center align-middle">{{giveawayShelfID}}</td>
+                            <td class="text-center align-middle">{{name}}</td>
+                            <td class="text-center align-middle">{{weight}}</td>
+                            <td class="text-center align-middle"> <img src="{{pictureURL}}"  class="giveawayImg"> </td>
+                        </tr>
+                        {{/giveaways}}
+                    </tbody>
+                </table>
+            </div>
+    </script>
+
+<script>
+    var view = {
+        giveaways: [ ]
+      }
+      function mustache(){
+        var template = $('#template').html();
+        Mustache.parse(template);   // optional, speeds up future uses
+        var rendered = Mustache.render(template, view);
+        
+        $('#target').html(rendered).promise().done(function(){  
+        });          
+      }   
+    </script>
+
+<script>
+    loadTable()
+        window.setInterval(loadTable, 10000)
+
+        function loadTable(){
+            socket.emit('getGiveawaysAdmin')
+        }
+        socket.on('loadGiveawaysAdmin', function(msg){
+            console.log(msg);
+            view.giveaways = msg
+            mustache()
+        });
+  </script>
+
+
+<h4>Giveaway definieren</h4>
+<form class="needs-validation mb-3" novalidate>
+    <div class="col-md-12 mb-3">
+        <label>Fachnummer</label>
+        <input type="text" class="form-control" id="giveawayShelfID" placeholder="Fachnummer" required>
+        <div class="invalid-feedback">
+            Bitte Fachnummer eingeben.
+        </div>
+    </div>
+    <div class="col-md-12 mb-3">
+        <label>Artikelname</label>
+        <input type="text" class="form-control" id="name" placeholder="Name" required>
+        <div class="invalid-feedback">
+            Bitte Artikelname eingeben.
+        </div>
+    </div> 
+    <div class="col-md-12 mb-3">
+        <label>Gewicht</label>
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Gewicht" id="weight" required>
+            <div class="input-group-append">
+                <span class="input-group-text" id="basic-addon2">g</span>
+            </div>
+        </div>
+    </div>  
+    <div class="col-md-12 mb-3">
+            <label>Bild hochladen</label>
+            <div class="custom-file">
+                <input type="file" accept=".jpg" class="custom-file-input" id="fileinput" required>
+                <label class="custom-file-label" for="fileinput" id="fileinputlabel">Foto auswählen</label>
+            </div>
+        </div>
+    <div class="col">
+        <button id="createButton" type="submit" href="#" class="btn btn-outline-success">Erstellen</button>
+    </div>
+</form>
+
+
+<h4>Giveaway löschen</h4>
+
+<form class="needs-validation mb-3" novalidate>
+    <div class="col-md-12 mb-3">
+        <label>Fachnummer</label>
+        <input type="text" class="form-control" id="deleteGiveawayShelfID" placeholder="Produkt ID" required>
+        <div class="invalid-feedback">
+            Bitte Fachnummer eingeben.
+        </div>
+    </div>
+    <div class="col">
+        <button id="editGiveawayButton" type="submit" href="#" class="btn btn-outline-success">Bestätigen</button>
+    </div>
+</form>
+
+
+<script>
+    $("#createButton").click(function (e) {
+        e.preventDefault();
+        var data = {
+            giveawayShelfID: $('#giveawayShelfID').val(),
+            name: $('#name').val(),
+            weight: $('#weight').val(),
+            imageData: undefined
+        }
+
+        var file = document.getElementById('fileinput').files[0];
+        console.log(file)
+        if (file != undefined){
+
+        
+        reader = new FileReader();
+        reader.onload = function(evt){
+
+            data.imageData = evt.target.result
+            // send a custom socket message to server
+            socket.emit('createGiveaway', data);
+        };
+        reader.readAsDataURL(file);
+        }
+    })
+</script>
+
+<script>
+    $("#editGiveawayButton").click(function (e) {
+        e.preventDefault();
+        var data = {
+            giveawayShelfID: $('#deleteGiveawayShelfID').val(),
+            delete: true
+        }
+        socket.emit('editGiveaway', data);
+    })
+</script>
+
+<script>
+document.getElementById('fileinput').addEventListener('change', function(){
+    var file = this.files[0];
+   
+    console.log("name : " + file.name);
+    console.log("size : " + file.size);
+    console.log("type : " + file.type);
+    console.log("date : " + file.lastModified);
+    
+    $('#fileinputlabel').text(file.name)    
+}, false);
+</script>
+
+<script>
+    $('#fileinput').on('change', function(e){
+    });
+</script>

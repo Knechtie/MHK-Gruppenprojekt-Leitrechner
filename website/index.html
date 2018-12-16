@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="/assets/Logo_2015_ohne_Schrift__farbig_ohne_Hintergrund.png">
+
+  <title>MHK Webshop</title>
+  <!-- Bootstrap core CSS -->
+  <link href="/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!--Custom styles for this template -->
+  <link href="css/jumbotron/jumbotron.css" rel="stylesheet">
+  <link href="/node_modules/tempusdominus-bootstrap-4/build/css/tempusdominus-bootstrap-4.css" rel="stylesheet">
+  <link href="/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+
+  <!--<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.css"> -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" sizes="1024x1024" href="/assets/IconIphoneRetina.png">
+</head>
+
+<body>
+  <script src="/node_modules/jquery/dist/jquery.js"></script>
+  <script src="/node_modules/bootstrap-touchspin/src/jquery.bootstrap-touchspin.js"></script>
+  <script src="/node_modules/two.js/build/two.min.js"></script>
+  <script src="drawProduct.js"></script>
+  <script src="/node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="/node_modules/mustache/mustache.js"></script>
+  <script src="/node_modules/moment/moment.js"></script>
+  <script>var socket = io();</script>
+
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <a class="navbar-brand" href="#">mhk <img src="/assets/Logo_2015_ohne_Schrift__weiß_ohne_Hintergrund.png" width="50"
+        height="50" class="d-inline-block" alt=""></a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"
+      aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/admin.html" target="_blank">Admin<span class="sr-only">(current)</span></a>
+        </li>
+      </ul>
+      <ul class="navbar-nav flex-row justify-content-center flex-nowrap">
+        <li class="nav-item"><a class="navbar-brand" href="#">
+            <img src="/assets/bezirksverband_grau.png" width="100" hseight="42" class="d-inline-block align-top" alt=""></a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main role="main">
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+      <div class="container">
+        <div class="alert alert-danger mt-5" role="alert" hidden>
+          Verbindung zum Server verloren!
+        </div>
+        <h1 class="display-3 mt-5">Hallo, FST-AUP17!</h1>
+        <p>Der kürzeste Programmiererwitz: Gleich bin ich fertig!</p>
+        <p><a class="btn btn-primary btn-lg" id="blueButton" href="#" role="button">Drück mich! &raquo;</a></p>
+      </div>
+    </div>
+    </script>
+
+
+    <div id="target">Loading...</div>
+
+    <script id="template" type="x-tmpl-mustache">
+      <div class="container">
+              <div class="row ">
+                  <div class="col-md-12">
+                    <h2>Artikel</h2>
+                    <p>Wählen Sie hier die gewünschten Artikel aus:</p>
+                  </div>  
+            <div class="col">
+                  <div class="row-12">
+                      <div class="row">
+          {{#products}}
+          <div class="col-md-4 d-flex mb-4">
+              <div class="card w-100" >
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">{{productName}}</h5>
+                  <p class="card-text">{{description}}</p>
+                  <div class="row justify-content-center align-self-center mt-auto" id={{productID}}></div>
+                </div>
+                <div class="card-footer">
+                  <small class="text-muted">Preis: </small>
+                  <label class="text-muted" id="price{{productID}}">{{price}}</label>
+                  <br>
+                  <small class="text-muted">Größe: </small>
+                  <label class="text-muted" id="size{{productID}}">{{size}}</label>
+                  <br>
+                  <small class="text-muted">Verfügbar: </small>
+                  <label class="text-muted" id="countOnStock{{productID}}">{{countOnStock}}</label>
+                  <br>
+                  <small class="text-muted">Anzahl auswählen:</small>
+                  <input id="spinnerID{{productID}}" type="text" value="0" name="spinnerID{{productID}}" data-bts-min="0" data-bts-max="{{countOnStock}}"
+                    data-bts-init-val="" data-bts-step="1" data-bts-decimal="0" data-bts-step-interval="100"
+                    data-bts-force-step-divisibility="round" data-bts-step-interval-delay="500" data-bts-prefix=""
+                    data-bts-postfix="" data-bts-prefix-extra-class="" data-bts-postfix-extra-class="" data-bts-booster="true"
+                    data-bts-boostat="10" data-bts-max-boosted-step="false" data-bts-mousewheel="true"
+                    data-bts-button-down-class="btn btn-secondary" data-bts-button-up-class="btn btn-secondary" />
+                </div>
+              </div>
+            </div>
+            {{/products}}
+          </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </script>
+
+    <script>
+      var view = {
+        products: [ ]
+      }
+      function mustache(){
+        var template = $('#template').html();
+        Mustache.parse(template);   
+        var rendered = Mustache.render(template, view);
+        $('#target').html(rendered).promise().done(function(){
+          view.products.forEach(element => {
+            drawProduct(element.drillParameters,element.productID, element.size, 1);
+            $(`input[name='spinnerID${element.productID}']`).TouchSpin({});
+            if (element.size == 1){
+              $(`#size${element.productID}`).html("klein")
+            }else{
+              $(`#size${element.productID}`).html("groß")
+            }
+          });
+        });    
+      }         
+    </script>
+
+
+    <script>
+      socket.on('connect_error', function(msg){
+        console.log("Verbindungsfehler")
+      })
+      socket.on('connect_timeout', function(msg){
+        console.log("Verbindungstimeout")
+      })
+      socket.on('reconnect', function(msg){
+        console.log("wieder verbunden")
+      })
+      socket.on('loadProducts', function(msg){
+      console.log(msg);
+      view.products = msg
+      mustache()
+    });
+    socket.on('refreshStock', function(msg){
+      console.log(msg);
+      msg.forEach(element => {
+        $(`#countOnStock${element.productID}`).html(element.countOnStock);
+        if (element.countOnStock > 0){
+          $(`#spinnerID${element.productID}`).trigger("touchspin.updatesettings", {max: element.countOnStock});
+        }
+        else{
+          $(`#spinnerID${element.productID}`).trigger("touchspin.updatesettings", {max: 0});
+        }
+      });
+    });
+</script>
+
+
+    <div class="container">
+      <form class="needs-validation" novalidate>
+        <div class="row">
+          <div class="col-md-1"></div>
+          <div class="col-md-12 mt-3">
+            <h2>Lieferadresse</h2>
+            <div class="form-row">
+              <div class="col-md-6 mb-3">
+                <label for="firstName">Vorname</label>
+                <input type="text" class="form-control" id="firstName" placeholder="Vorname" required>
+                <div class="invalid-feedback">
+                  Bitte Vorname eingeben.
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="lastName">Nachname</label>
+                <input type="text" class="form-control" id="lastName" placeholder="Nachname" required>
+                <div class="invalid-feedback">
+                  Bitte Nachname eingeben.
+                </div>
+              </div>
+              <div class="col-md-9 mb-3">
+                <label for="streetAndNumber">Straße + Nr.</label>
+                <input type="text" class="form-control" id="streetAndNumber" placeholder="Straße + Nr."
+                  aria-describedby="inputGroupPrepend3" required>
+                <div class="invalid-feedback">
+                  Bitte Adresse eingeben.
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="postalCode">PLZ</label>
+                <input type="text" class="form-control" id="postalCode" placeholder="PLZ" minlength="5" maxlength="5"
+                  required>
+                <div class="invalid-feedback">
+                  Bitte PLZ eingeben.
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="col-md-12 mb-3">
+                <label for="city">Ort</label>
+                <input type="text" class="form-control" id="city" placeholder="Ort" required>
+                <div class="invalid-feedback">
+                  Bitte Ort eingeben.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <h2 class="mb-12">Lieferdatum</h2>
+            <div class="input-group date" id="datetimepicker1" data-target-input="nearest">
+              <input type="text" class="form-control datetimepicker-input" data-target="#datetimepicker1" required />
+              <div class="input-group-append" data-target="#datetimepicker1" data-toggle="datetimepicker">
+                <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+              </div>
+            </div>
+            <div class="invalid-feedback">
+              Bitte Datum und Uhrzeit eingeben.
+            </div>
+          </div>
+          <script type="text/javascript">
+            var test = Date.now()
+            console.log(test)
+            $(function () {
+              $('#datetimepicker1').datetimepicker({
+                sideBySide: true,
+                format: "DD.MM.YY HH:mm",
+                locale: 'de',
+                useCurrent: true,
+                minDate: Date.now(),
+                maxDate: Date.now() + Date.parse('04 Jan 1970 00:00:00 GMT'), //01 Jan 1970 00:00:00 GMT --> "Zeitpunkt null" des Zeitformats. Datentyp  beschreibt millisekuden seit diesem Datum.
+                viewMode: 'times'
+              });
+            });
+
+            var datetimepickerDate = 0
+            $('#datetimepicker1').on('change.datetimepicker datetimepicker.change', function (e) {
+              datetimepickerDate = new Date(e.date)
+              console.log(e.date)
+              console.log(datetimepickerDate)
+            });
+          </script>
+
+          <div class="col-md-12">
+            <div class="form-check form-check-inline mb-3">
+              <input class="form-check-input" type="checkbox" id="Testmodus" value="option1">
+              <label class="form-check-label" for="Testmodus">Zufallsadresse</label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <p><button id="sendButton" type="submit" href="#" class="btn btn-outline-success">Bestellen</button></p>
+          </div>
+        </div>
+    </div>
+    </form>
+    <hr>
+    </div> <!-- /container -->
+  </main>
+
+  <footer class="container">
+    <p>&copy; FST AUP17 2018</p>
+  </footer>
+
+  <!-- Bootstrap core JavaScript
+    ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script>
+    window.jQuery || document.write('<script src="../../assets/js/vendor/jquery-slim.min.js"><\/script>')
+  </script>
+  <script src="/node_modules/popper.js/dist/umd/popper.js"></script>
+  <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="/node_modules/tempusdominus-bootstrap-4/build/js/tempusdominus-bootstrap-4.min.js"></script>
+
+
+  <script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+      'use strict';
+      window.addEventListener('load', function () {
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        var forms = document.getElementsByClassName('needs-validation');
+        // Loop over them and prevent submission
+        var validation = Array.prototype.filter.call(forms, function (form) {
+          form.addEventListener('submit', function (event) {
+            if (form.checkValidity() === false) {
+              event.preventDefault();
+              event.stopPropagation();
+            } else {
+              event.preventDefault();
+              sendOrder();
+            }
+            form.classList.add('was-validated');
+          }, false);
+        });
+      }, false);
+    })();
+  </script>
+
+  <script type="application/javascript">
+    $(document).ready(function () {
+
+      socket.emit("dateTime", new Date());
+
+      $("#blueButton").click(() => {});
+
+      $("#Testmodus").change(() => {
+        if (document.getElementById("Testmodus").checked == true) {
+          console.log("check");
+          socket.emit("testmodus")
+        } else {
+          console.log("uncheck");
+        }
+      })
+    });
+
+    function sendOrder() {
+      console.log(`Post Data to ${window.location.host}`);
+      console.log(getOrderDataJSON());
+      const data = getOrderDataJSON()
+      if (data.items.length == 0) {
+        alert("Bitte Artikel zum Bestellen angeben!")
+      } else {
+        socket.emit("sendOrder", data)
+        //Hier wird reagiert, ob testmodus aktiv oder normaler modus mit weiterleitung zur Bestellbestätigung
+        if (document.getElementById("Testmodus").checked == true) {
+          console.log("testmodus aktiv");
+          socket.emit("testmodus")
+        } else {
+          console.log("normaler Modus");
+        }
+      }
+    }
+
+    function getOrderDataJSON() {
+      let data = {
+        items: [],
+        deliveryDate: datetimepickerDate,
+        firstName: $('#firstName').val(),
+        lastName: $('#lastName').val(),
+        streetAndNumber: $('#streetAndNumber').val(),
+        postalCode: $('#postalCode').val(),
+        city: $('#city').val()
+      }
+
+      view.products.forEach((item, index) => {
+        if ($(`input[name='spinnerID${item.productID}']`).val() > 0) {
+          data.items.push({
+            productID: item.productID,
+            count: $(`input[name='spinnerID${item.productID}']`).val()
+          })
+        }
+      })
+      return data;
+    }
+
+
+    socket.on("testData", (newOrderData) => {
+      console.log(newOrderData);
+
+      $('#deliveryDate').val(newOrderData.deliveryDate);
+      $('#firstName').val(newOrderData.firstName);
+      $('#lastName').val(newOrderData.lastName);
+      $('#streetAndNumber').val(newOrderData.streetAndNumber);
+      $('#postalCode').val(newOrderData.postalCode);
+      $('#city').val(newOrderData.city);
+    })
+  </script>
+
+</body>
+</html>

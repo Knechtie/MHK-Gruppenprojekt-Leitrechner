@@ -1,0 +1,76 @@
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Bestellungen</h1>
+</div>
+
+<div id="target">Loading...</div>
+<script id="template" type="x-tmpl-mustache">
+    <h4>Übersicht der Bestellungen</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th class="text-center">ID</th>
+                            <th class="text-center">Bestelldatum</th>
+                            <th class="text-center">Lieferdatum</th>
+                            <th class="text-center">Paketnummer</th>
+                            <th class="text-center">Gesamtanzahl Pakete</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Letztes Update</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#orders}}
+                        <tr>
+                            <td class="text-center align-middle">{{orderID}}</td>
+                            <td class="text-center align-middle">{{orderDate}}</td>
+                            <td class="text-center align-middle">{{deliveryDate}}</td>
+                            <td class="text-center align-middle">{{packageNr}}</td>
+                            <td class="text-center align-middle">{{totalNumberOfPackages}}</td>
+                            <td class="text-center align-middle">{{status}}</td>
+                            <td class="text-center align-middle">{{lastUpdate}}</td>
+                        </tr>
+                        {{/orders}}
+                    </tbody>
+                </table>
+            </div>
+    </script>
+
+<script>
+    var view = {
+        orders: []
+    }
+
+    function mustache() {
+        var template = $('#template').html();
+        Mustache.parse(template); // optional, speeds up future uses
+        var rendered = Mustache.render(template, view);
+
+        $('#target').html(rendered).promise().done(function () {
+            view.orders.forEach(element => {
+            });
+        });
+    }
+</script>
+
+<script>
+    loadTable()
+    window.setInterval(loadTable, 10000)
+
+    function loadTable() {
+        socket.emit('getOrdersAdmin')
+    }
+    socket.on('loadOrdersAdmin', function (msg) {
+        console.log(msg);
+        view.orders = msg
+        view.orders.forEach(function (element, index) {
+            element.orderDate = new Date(element.orderDate).toLocaleString()
+            element.deliveryDate = new Date(element.deliveryDate).toLocaleString()
+            if (element.lastUpdate != undefined){
+                element.lastUpdate = new Date(element.lastUpdate).toLocaleString()
+            } else {
+                element.status = "Kein ORI-Telegramm erhalten!"
+            }
+        })
+        mustache()
+    });
+</script>

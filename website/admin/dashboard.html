@@ -1,0 +1,79 @@
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Dashboard</h1>
+</div>
+    <h4>Verkaufte Spiele</h4>
+<canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
+
+
+<!-- Graphs -->
+<script src="/node_modules/chart.js/dist/Chart.min.js"></script>
+
+
+<script>
+  var data = {
+    datasets: [{
+      data: [],
+      backgroundColor: [
+        "rgba(255, 99, 132, 0.5)",
+        "rgba(75, 192, 192, 0.5)",
+        "rgba(255, 205, 86, 0.5)",
+        "rgba(201, 203, 207, 0.5)",
+        "rgba(54, 162, 235, 0.5)",
+        "rgba(40, 99, 132, 0.5)",
+        "rgba(75, 57, 192, 0.5)",
+        "rgba(255, 24, 86, 0.5)",
+        "rgba(79, 203, 107, 0.5)",
+        "rgba(54, 162, 75, 0.5)"
+      ],
+      borderColor: [
+        "rgba(255, 99, 132, 0.5)",
+        "rgba(75, 192, 192, 0.5)",
+        "rgba(255, 205, 86, 0.5)",
+        "rgba(201, 203, 207, 0.5)",
+        "rgba(54, 162, 235, 0.5)",
+        "rgba(40, 99, 132, 0.5)",
+        "rgba(75, 57, 192, 0.5)",
+        "rgba(255, 24, 86, 0.5)",
+        "rgba(79, 203, 107, 0.5)",
+        "rgba(54, 162, 75, 0.5)"
+      ]
+    }],
+    // These labels appear in the legend and in the tooltips when hovering different arcs
+    labels: []
+  };
+
+
+  socket.emit('dashboardData');
+
+  socket.on('loadDashboardData', function (res) {
+    console.log(res)
+
+    removeData(data)
+
+    res.forEach((element, i) => {
+      addData(myChart, element.productName, element.totalOrdered)
+    });
+    myChart.update()
+  })
+  console.log(data)
+
+  function addData(chart, label, data) {
+    chart.data.labels.push(label);
+    chart.data.datasets.forEach((dataset) => {
+      dataset.data.push(data);
+    });
+  }
+
+  function removeData(data) {
+    data.labels = []
+    data.datasets.forEach((dataset) => {
+      dataset.data = []
+    });
+  }
+
+  var ctx = document.getElementById("myChart");
+  var myChart = new Chart(ctx, {
+    data: data,
+    type: 'polarArea',
+  });
+</script>

@@ -1,0 +1,60 @@
+<link href="css/signin.css" rel="stylesheet">
+<script src="/node_modules/bcryptjs/dist/bcrypt.min.js"></script>
+
+<form class="form-signin text-center">
+    <img class="mb-4" src="/assets/Logo_2015_ohne_Schrift__farbig_ohne_Hintergrund.png" alt="" width="72" height="72">
+    <h1 class="h3 mb-3 font-weight-normal">Bitte anmelden</h1>
+    <label for="username" class="sr-only">Benutzername</label>
+    <input type="text" id="username" class="form-control" placeholder="Benutzername" required autofocus>
+    <label for="password" class="sr-only">Passwort</label>
+    <input type="password" id="password" class="form-control mt-2" placeholder="Passwort" required>
+
+    <button class="btn btn-lg btn-primary btn-block mt-5" id="button" type="submit">Einloggen</button>
+</form>
+
+<script>
+    $("#button").click(function (e) {
+        e.preventDefault();
+        var usr = {
+            username: $('#username').val()
+        }
+
+        postJSON("/login", usr, (response) => {
+            if (response != "0") {
+                const salt = response.salt
+
+                const password = $('#password').val()
+
+                var bcrypt = dcodeIO.bcrypt;
+                var hash = bcrypt.hashSync(password, salt);
+
+                var data = {
+                    username: $('#username').val(),
+                    hash: hash
+                }
+
+                postJSON("/login", data, (response) => {
+                    console.log(response)
+                    if (response != "0") {
+                        $("#body").html(response)
+                    } else {
+                        alert("Benutzername oder Passwort falsch!")
+                    }
+                })
+            } else {
+                alert("Benutzername oder Passwort falsch!")
+            }
+        })
+    });
+
+    function postJSON(url, json, callback) {
+        $.ajax({
+            url: url,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(json)
+        }).done(function (data) {
+            callback(data);
+        });
+    }
+</script>
