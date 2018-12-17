@@ -253,6 +253,11 @@ io.on('connection', function (socket) {
         ]);
     });
 
+    socket.on("deleteOrder", function(orderID){
+        db.deleteOrder(orderID, ()=>{
+            emitloadOrdersAdmin();
+        });
+    });
 });
 
 communicationPLC.on("refreshWebsiteProducts", function () {

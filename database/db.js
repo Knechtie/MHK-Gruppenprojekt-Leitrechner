@@ -88,9 +88,8 @@ const queries = {
     tableProducts: 'CREATE TABLE "Products" ("productID" SERIAL PRIMARY KEY, "productName" TEXT,description TEXT, deprecated bool, size integer, "drillParameters" boolean[], weight integer, "weightTolerance" integer,"countOnStock" integer, price money, "totalOrdered" integer)',
     tableOrders: 'CREATE TABLE "Orders" ("orderID" SERIAL PRIMARY KEY, "customerID" integer REFERENCES "Customers" ON DELETE CASCADE, "finalPrice" money, "orderDate" timestamp without time zone,"deliveryDate" timestamp without time zone)',
     tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, weight integer, "weightTolerance" integer)',
-    tablePackages: 'CREATE TABLE "Packages" ("orderID" integer REFERENCES "Orders" ON DELETE CASCADE, "packageNr" integer , "totalNumberOfPackages" integer, "totalWeight" integer,  "totalWeightTolerance" integer, "giveawayShelfID" integer REFERENCES "Giveaways" ON DELETE CASCADE, PRIMARY KEY ("orderID", "packageNr"))',
+    tablePackages: 'CREATE TABLE "Packages" ("orderID" integer REFERENCES "Orders" ON DELETE CASCADE, "packageNr" integer , "totalNumberOfPackages" integer, "totalWeight" integer,  "totalWeightTolerance" integer, "giveawayShelfID" integer REFERENCES "Giveaways", PRIMARY KEY ("orderID", "packageNr"))',
     tableOrderItems: 'CREATE TABLE "OrderItems" ("orderID" integer, "packageNr" integer, "productID" integer,    Foreign key ("orderID","packageNr") references "Packages"("orderID","packageNr") on delete cascade)',
-
     tablePackagesProductionStatus: 'CREATE TABLE "PackagesProductionStatus" ("orderID" integer, "packageNr" integer, status TEXT, "lastUpdate" timestamp without time zone, FOREIGN KEY ("orderID", "packageNr") References "Packages" ("orderID", "packageNr") on delete cascade, PRIMARY KEY ("orderID", "packageNr"))',
     tableLoginWebsite: 'CREATE TABLE "LoginWebsite" ("userID" SERIAL PRIMARY KEY, username TEXT, salt text, hash text)'
 };
@@ -120,7 +119,9 @@ init = function (callback) {
             }
         } else {
             newStandardUserLogin();
-            newSampleProducts();
+            if (process.env.NODE_ENV === 'development') {
+                newSampleProducts();
+            }
             if (typeof callback === 'function') {
                 callback();
             }
@@ -133,8 +134,6 @@ function newSampleProducts() {
         1: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 1', 'Beschreibung 1', '1', ARRAY[true, false, false, false, false] , 10, '100', '100',0)`,
         2: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 2', 'Beschreibung 2', '2', '{false, true, false, false, false}', 20, '200', '200',0)`,
         3: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 3', 'Beschreibung 3', '1', '{false, false, true, false, false}', 30, '300', '300',0)`,
-        4: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 4', 'Beschreibung 4', '2', '{false, false, false, true, false}', 40, '400', '400',0)`,
-        5: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 5', 'Beschreibung 5', '1', '{false, false, false, false, true}', 50, '500', '500',0)`
     };
     async.eachOfSeries(products, function (value, key, callback) {
         console.log(key);
@@ -376,9 +375,9 @@ function createPackages(Order, callback) {
                         console.log("######");
                         console.log(itemsInPackage);
 
-                         if (itemsInPackage >= maxItemQuantity) {
+                        if (itemsInPackage >= maxItemQuantity) {
                             const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
-                            const packageValues = [totalWeight,Order.orderID, packageNr];
+                            const packageValues = [totalWeight, Order.orderID, packageNr];
                             query(packageQuery, packageValues, (err, res) => {
                                 if (err) {
                                     console.log(err.stack);
@@ -392,7 +391,7 @@ function createPackages(Order, callback) {
                             callback();
                         }
                     },
-                    function(callback){
+                    function (callback) {
                         if (itemsInPackage == 0) {
                             const packageQuery = 'INSERT INTO "Packages" ("orderID", "packageNr", "giveawayShelfID") VALUES($1, $2, $3)';
                             const packageValues = [Order.orderID, packageNr, giveawayShelfID];
@@ -402,12 +401,11 @@ function createPackages(Order, callback) {
                                 }
                                 callback();
                             });
-                        }
-                        else{
+                        } else {
                             callback();
                         }
                     },
-                
+
                     function (callback) {
                         const text = 'INSERT INTO "OrderItems" ("orderID", "packageNr", "productID") VALUES($1, $2, $3)';
                         const values = [Order.orderID, packageNr, product.productID];
@@ -451,7 +449,7 @@ function createPackages(Order, callback) {
             },
             function (callback) {
                 const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
-                const packageValues = [totalWeight,Order.orderID, packageNr];
+                const packageValues = [totalWeight, Order.orderID, packageNr];
                 query(packageQuery, packageValues, (err, res) => {
                     if (err) {
                         console.log(err.stack);
@@ -483,6 +481,7 @@ function decItemOnStock(productID, callback) {
         callback();
     });
 }
+
 function incStatTotalOrdered(productID) {
     query('UPDATE "Products" SET "totalOrdered"="totalOrdered"+1 WHERE "productID"=$1', [productID], (err, res) => {
         if (err) {
@@ -556,8 +555,8 @@ function queryGiveaways(callback) {
         callback(res.rows);
     });
 }
- 
-function queryStats(callback){
+
+function queryStats(callback) {
     query(`SELECT "productID", "productName", "totalOrdered" FROM "Products" ORDER BY "productID" ASC`, (err, res) => {
         if (err) {
             console.log(err.stack);
@@ -637,6 +636,56 @@ function editGiveaway(giveawayShelfID, deleteGiveaway, callback) {
     }
 }
 
+function deleteOrder(orderID, callback) {
+    async.waterfall([
+        function (callback) {
+            query(`SELECT "customerID" FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback(null, res.rows[0].customerID);
+            });
+        },
+        function (customerID, callback) {
+            console.log("2.0.");
+
+            query(`SELECT * FROM "Orders" WHERE "customerID"=$1`, [customerID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback(null, customerID, res.rows.length);
+            });
+        },
+        function (customerID, totalActiveOrdersOfCustomer, callback) {
+            if (totalActiveOrdersOfCustomer == 1){
+                query(`DELETE FROM "Customers" WHERE "customerID"=$1`, [customerID], (err, res) => {
+                    if (err) {
+                        console.log(err.stack);
+                        callback(err);
+                    }
+                    callback();
+                });
+            }
+            else{
+                callback();
+            }
+        },
+        function (callback) {
+            query(`DELETE FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback();
+            });
+        }
+    ], function (err, result) {
+        callback();
+    });
+}
+
 module.exports = {
     init: init,
     query: query,
@@ -653,5 +702,6 @@ module.exports = {
     queryGiveaways: queryGiveaways,
     createGiveaway: createGiveaway,
     editGiveaway: editGiveaway,
-    queryStats: queryStats
+    queryStats: queryStats,
+    deleteOrder: deleteOrder
 };
