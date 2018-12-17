@@ -156,7 +156,10 @@ module.exports = class communicationPLC extends EventEmitter {
         this.PDU(this.SteinConveyor, "KOM");
     }
     sendItemDataToPLC() {
+        this.ADU(this.FlexlinkBuffer, "PUF");
+        this.ADU(this.Production, "PRD");
         this.ADU(this.SteinConveyor, "KOM");
+        this.ADU(this.Warehouse, "LAG");
     }
 
 
