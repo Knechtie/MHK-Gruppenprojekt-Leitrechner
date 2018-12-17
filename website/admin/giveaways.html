@@ -74,7 +74,7 @@
         <div class="invalid-feedback">
             Bitte Artikelname eingeben.
         </div>
-    </div> 
+    </div>
     <div class="col-md-12 mb-3">
         <label>Gewicht</label>
         <div class="input-group mb-3">
@@ -82,15 +82,21 @@
             <div class="input-group-append">
                 <span class="input-group-text" id="basic-addon2">g</span>
             </div>
-        </div>
-    </div>  
-    <div class="col-md-12 mb-3">
-            <label>Bild hochladen</label>
-            <div class="custom-file">
-                <input type="file" accept=".jpg" class="custom-file-input" id="fileinput" required>
-                <label class="custom-file-label" for="fileinput" id="fileinputlabel">Foto auswählen</label>
+            <div class="invalid-feedback">
+                Bitte Gewicht eingeben.
             </div>
         </div>
+    </div>
+    <div class="col-md-12 mb-3">
+        <label>Bild hochladen</label>
+        <div class="custom-file">
+            <input type="file" accept=".jpg" class="custom-file-input form-control" id="fileinput" required>
+            <label class="custom-file-label" for="fileinput" id="fileinputlabel">Foto auswählen</label>
+            <div class="invalid-feedback">
+                Bitte Bild hochladen.
+            </div>
+        </div>
+    </div>
     <div class="col">
         <button id="createButton" type="submit" href="#" class="btn btn-outline-success">Erstellen</button>
     </div>
@@ -102,20 +108,52 @@
 <form class="needs-validation mb-3" novalidate>
     <div class="col-md-12 mb-3">
         <label>Fachnummer</label>
-        <input type="text" class="form-control" id="deleteGiveawayShelfID" placeholder="Produkt ID" required>
+        <input type="text" class="form-control" id="deleteGiveawayShelfID" placeholder="Fachnummer" required>
         <div class="invalid-feedback">
             Bitte Fachnummer eingeben.
         </div>
     </div>
     <div class="col">
-        <button id="editGiveawayButton" type="submit" href="#" class="btn btn-outline-success">Bestätigen</button>
+        <button id="editGiveawayButton" type="submit" href="#" class="btn btn-outline-danger">Löschen</button>
     </div>
 </form>
-
 
 <script>
     $("#createButton").click(function (e) {
         e.preventDefault();
+        var abort = false
+        if ($('#giveawayShelfID').val() == "") {
+            document.getElementById("giveawayShelfID").className = "form-control is-invalid";
+            abort = true
+        } else {
+            document.getElementById("giveawayShelfID").className = "form-control is-valid";
+        }
+
+        if ($('#name').val() == "") {
+            document.getElementById("name").className = "form-control is-invalid";
+            abort = true
+        } else {
+            document.getElementById("name").className = "form-control is-valid";
+        }
+
+        if ($('#weight').val() == "") {
+            document.getElementById("weight").className = "form-control is-invalid";
+            abort = true
+        } else {
+            document.getElementById("weight").className = "form-control is-valid";
+        }
+        console.log(document.getElementById('fileinput').files[0])
+        if (document.getElementById('fileinput').files[0] === undefined) {
+            document.getElementById("fileinput").className = "custom-file-input form-control is-invalid";
+            abort = true
+        } else {
+            document.getElementById("fileinput").className = "custom-file-input form-control is-valid";
+        }
+
+        if (abort) {
+            return
+        }
+
         var data = {
             giveawayShelfID: $('#giveawayShelfID').val(),
             name: $('#name').val(),
@@ -125,17 +163,17 @@
 
         var file = document.getElementById('fileinput').files[0];
         console.log(file)
-        if (file != undefined){
+        if (file != undefined) {
 
-        
-        reader = new FileReader();
-        reader.onload = function(evt){
 
-            data.imageData = evt.target.result
-            // send a custom socket message to server
-            socket.emit('createGiveaway', data);
-        };
-        reader.readAsDataURL(file);
+            reader = new FileReader();
+            reader.onload = function (evt) {
+
+                data.imageData = evt.target.result
+                // send a custom socket message to server
+                socket.emit('createGiveaway', data);
+            };
+            reader.readAsDataURL(file);
         }
     })
 </script>
@@ -143,28 +181,44 @@
 <script>
     $("#editGiveawayButton").click(function (e) {
         e.preventDefault();
+        const id = $('#deleteGiveawayShelfID').val()
+        if (id == "") {
+            document.getElementById("deleteGiveawayShelfID").className = "form-control is-invalid";
+            return
+        } else {
+            document.getElementById("deleteGiveawayShelfID").className = "form-control is-valid";
+        }
+
         var data = {
             giveawayShelfID: $('#deleteGiveawayShelfID').val(),
             delete: true
         }
-        socket.emit('editGiveaway', data);
+
+        if (confirm(
+                `Sind Sie sich sicher, dass Sie den Promotionsartikel mit der Fachnummer ${id} löschen wollen?`
+            )) {
+            console.log("You pressed OK!");
+            socket.emit('editGiveaway', data);
+            $('#deleteGiveawayShelfID').val("")
+        } else {
+            console.log("You pressed Cancel!");
+        }
     })
 </script>
 
 <script>
-document.getElementById('fileinput').addEventListener('change', function(){
-    var file = this.files[0];
-   
-    console.log("name : " + file.name);
-    console.log("size : " + file.size);
-    console.log("type : " + file.type);
-    console.log("date : " + file.lastModified);
-    
-    $('#fileinputlabel').text(file.name)    
-}, false);
+    document.getElementById('fileinput').addEventListener('change', function () {
+        var file = this.files[0];
+
+        console.log("name : " + file.name);
+        console.log("size : " + file.size);
+        console.log("type : " + file.type);
+        console.log("date : " + file.lastModified);
+
+        $('#fileinputlabel').text(file.name)
+    }, false);
 </script>
 
 <script>
-    $('#fileinput').on('change', function(e){
-    });
+    $('#fileinput').on('change', function (e) {});
 </script>
