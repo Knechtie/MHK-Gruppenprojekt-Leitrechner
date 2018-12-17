@@ -11,6 +11,7 @@
 </div>
 
 <script>
+    socket.removeAllListeners()
     $("#shutdown").click(function () {
         socket.emit('raspberryConfig', "shutdown")
     })
