@@ -636,6 +636,56 @@ function editGiveaway(giveawayShelfID, deleteGiveaway, callback) {
     }
 }
 
+function deleteOrder(orderID, callback) {
+    async.waterfall([
+        function (callback) {
+            query(`SELECT "customerID" FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback(null, res.rows[0].customerID);
+            });
+        },
+        function (customerID, callback) {
+            console.log("2.0.");
+
+            query(`SELECT * FROM "Orders" WHERE "customerID"=$1`, [customerID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback(null, customerID, res.rows.length);
+            });
+        },
+        function (customerID, totalActiveOrdersOfCustomer, callback) {
+            if (totalActiveOrdersOfCustomer == 1){
+                query(`DELETE FROM "Customers" WHERE "customerID"=$1`, [customerID], (err, res) => {
+                    if (err) {
+                        console.log(err.stack);
+                        callback(err);
+                    }
+                    callback();
+                });
+            }
+            else{
+                callback();
+            }
+        },
+        function (callback) {
+            query(`DELETE FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback();
+            });
+        }
+    ], function (err, result) {
+        callback();
+    });
+}
+
 module.exports = {
     init: init,
     query: query,
@@ -652,5 +702,6 @@ module.exports = {
     queryGiveaways: queryGiveaways,
     createGiveaway: createGiveaway,
     editGiveaway: editGiveaway,
-    queryStats: queryStats
+    queryStats: queryStats,
+    deleteOrder: deleteOrder
 };

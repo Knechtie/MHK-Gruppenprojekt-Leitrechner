@@ -74,3 +74,42 @@
         mustache()
     });
 </script>
+
+<h4>Bestellung Löschen</h4>
+
+<div class="alert alert-secondary" role="alert" id="messageBoxEdit">
+    Beim Löschen einer Bestellung werden alle zugehörigen Pakete aus der Datenbank des Leitrechners gelöscht.
+</div>
+<form class="needs-validation mb-3" novalidate>
+    <div class="col-md-12 mb-3">
+        <label>Bestell ID</label>
+        <input type="text" class="form-control" id="inputOrderID" placeholder="Bestell ID" required>
+        <div class="invalid-feedback">
+            Bestell ID eingeben.
+        </div>
+    </div>
+    <div class="col">
+        <button id="deleteButton" type="submit" href="#" class="btn btn-outline-danger">Löschen</button>
+    </div>
+</form>
+
+<script>
+    $("#deleteButton").click(function (e) {
+        e.preventDefault();
+        const id = $('#inputOrderID').val()
+        if (id == ""){
+            document.getElementById("inputOrderID").className = "form-control is-invalid";
+            return
+        }
+        else{
+            document.getElementById("inputOrderID").className = "form-control is-valid";
+        }
+        if (confirm(`Sind Sie sich sicher, dass Sie die Bestellung mit der Bestellungsnummer ${id} löschen wollen?`)) {
+            console.log("You pressed OK!");
+            socket.emit("deleteOrder", id)
+            $('#inputOrderID').val("")
+        } else {
+            console.log("You pressed Cancel!");
+        }
+    })
+</script>
