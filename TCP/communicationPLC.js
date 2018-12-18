@@ -369,42 +369,43 @@ module.exports = class communicationPLC extends EventEmitter {
         const data = {
             orderID: parseInt(msg.data.substr(4, 6)),
             packageNr: parseInt(msg.data.substr(10, 2)),
-            status: parseInt(msg.data.substr(12, 2)),
+            statusText: undefined,
+            statusCode: parseInt(msg.data.substr(12, 2)),
             lastUpdate: `${msg.data.substr(14, 4)}-${msg.data.substr(18, 2)}-${msg.data.substr(20, 2)} ${msg.data.substr(22, 2)}:${msg.data.substr(24, 2)}:${msg.data.substr(26, 2)}`
         };
-        switch (data.status) {
+        switch (data.statusCode) {
             case 10:
-                data.status = "Paket in Warteschlange";
+                data.statusText = "Paket in Warteschlange";
                 break;
             case 20:
-                data.status = "Paket in Bearbeitung am HAP";
+                data.statusText = "Paket in Bearbeitung am HAP";
                 break;
             case 21:
-                data.status = "Bearbeitung am HAP abgeschlossen => Qualitätskontrolle";
+                data.statusText = "Bearbeitung am HAP abgeschlossen => Qualitätskontrolle";
                 break;
             case 22:
-                data.status = "in Nachbearbeitung";
+                data.statusText = "in Nachbearbeitung";
                 break;
             case 30:
-                data.status = "Unterwegs zu Lager/Versand";
+                data.statusText = "Unterwegs zu Lager/Versand";
                 break;
             case 40:
-                data.status = "Eingelagert";
+                data.statusText = "Eingelagert";
                 break;
             case 50:
-                data.status = "wird versendet";
+                data.statusText = "wird versendet";
                 break;
             case 60:
-                data.status = "versendet";
+                data.statusText = "versendet";
                 break;
             case 99:
-                data.status = "Paket gelöscht";
+                data.statusText = "Paket gelöscht";
                 break;
             default:
                 break;
         }
-        const text = 'INSERT INTO "PackagesProductionStatus" ("orderID", "packageNr","status", "lastUpdate") VALUES($1,$2,$3,$4)';
-        const values = [data.orderID, data.packageNr, data.status, data.lastUpdate];
+        const text = 'INSERT INTO "PackagesProductionStatus" ("orderID", "packageNr","statusText", "statusCode", lastUpdate") VALUES($1,$2,$3,$4,$5)';
+        const values = [data.orderID, data.packageNr, data.statusText, data.statusCode, data.lastUpdate];
         db.query(text, values, (err, res) => {
             if (err) {
                 nodeLogging.logger.ERROR(err.stack);

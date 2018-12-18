@@ -90,7 +90,7 @@ const queries = {
     tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, weight integer, "weightTolerance" integer)',
     tablePackages: 'CREATE TABLE "Packages" ("orderID" integer REFERENCES "Orders" ON DELETE CASCADE, "packageNr" integer , "totalNumberOfPackages" integer, "totalWeight" integer,  "totalWeightTolerance" integer, "giveawayShelfID" integer REFERENCES "Giveaways", PRIMARY KEY ("orderID", "packageNr"))',
     tableOrderItems: 'CREATE TABLE "OrderItems" ("orderID" integer, "packageNr" integer, "productID" integer,    Foreign key ("orderID","packageNr") references "Packages"("orderID","packageNr") on delete cascade)',
-    tablePackagesProductionStatus: 'CREATE TABLE "PackagesProductionStatus" ("orderID" integer, "packageNr" integer, status TEXT, "lastUpdate" timestamp without time zone, FOREIGN KEY ("orderID", "packageNr") References "Packages" ("orderID", "packageNr") on delete cascade, PRIMARY KEY ("orderID", "packageNr"))',
+    tablePackagesProductionStatus: 'CREATE TABLE "PackagesProductionStatus" ("orderID" integer, "packageNr" integer, "statusText" TEXT, "statusCode" integer, "lastUpdate" timestamp without time zone, FOREIGN KEY ("orderID", "packageNr") References "Packages" ("orderID", "packageNr") on delete cascade, PRIMARY KEY ("orderID", "packageNr"))',
     tableLoginWebsite: 'CREATE TABLE "LoginWebsite" ("userID" SERIAL PRIMARY KEY, username TEXT, salt text, hash text)'
 };
 
@@ -527,7 +527,7 @@ function queryProducts(callback) {
 }
 
 function queryAllOrders(callback) {
-    query('SELECT   "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages","public"."PackagesProductionStatus"."status","public"."PackagesProductionStatus"."lastUpdate" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" order by "orderID" asc', (err, res) => {
+    query('SELECT   "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages","public"."PackagesProductionStatus"."statusText","public"."PackagesProductionStatus"."lastUpdate" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" order by "orderID" asc', (err, res) => {
         if (err) {
             console.log(err.stack);
             callback();
