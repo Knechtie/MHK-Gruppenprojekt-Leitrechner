@@ -706,10 +706,36 @@ function deleteAllOrders(callback) {
         function (orderIDs, callback) {
             async.forEachOfSeries(orderIDs, function (ID, key, callback) {
                 deleteOrder(ID.orderID, callback);
+            }, function(){
+                callback();
             });
         }
     ], function (err, result) {
         callback();
+    });
+}
+
+function automaticDBCleanup (){
+    async.waterfall([
+        function (callback) {
+            query(`SELECT DISTINCT "orderID" FROM "PackagesProductionStatus" WHERE "statusCode"=0 OR "statusCode">=60`, [], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                console.log(res.rows);
+                callback(null, res.rows);
+            });
+        },
+        function (orderIDs, callback) {
+            async.forEachOfSeries(orderIDs, function (ID, key, callback) {
+                deleteOrder(ID.orderID, callback);
+            }, function(){
+                callback();
+            });
+        }
+    ], function (err, result) {
+        console.log("Datenbank bereinigt!");
     });
 }
 
@@ -731,5 +757,6 @@ module.exports = {
     editGiveaway: editGiveaway,
     queryStats: queryStats,
     deleteOrder: deleteOrder,
-    deleteAllOrders: deleteAllOrders
+    deleteAllOrders: deleteAllOrders,
+    automaticDBCleanup: automaticDBCleanup
 };
