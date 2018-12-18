@@ -404,15 +404,14 @@ module.exports = class communicationPLC extends EventEmitter {
             default:
                 break;
         }
-        const text = 'INSERT INTO "PackagesProductionStatus" ("orderID", "packageNr","statusText", "statusCode", lastUpdate") VALUES($1,$2,$3,$4,$5)';
-        const values = [data.orderID, data.packageNr, data.statusText, data.statusCode, data.lastUpdate];
+        const text = 'UPDATE "PackagesProductionStatus" SET "statusText"=$1, "statusCode"=$2, lastUpdate=$3" WHERE "orderID"=$4 AND "packageNr"=$5';
+        const values = [data.statusText, data.statusCode, data.lastUpdate, data.orderID, data.packageNr];
         db.query(text, values, (err, res) => {
             if (err) {
                 nodeLogging.logger.ERROR(err.stack);
             }
             this.emit("refreshWebsiteProducts");
         });
-
     }
 
     ADI(msg) {

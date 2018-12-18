@@ -399,7 +399,14 @@ function createPackages(Order, callback) {
                                 if (err) {
                                     console.log(err.stack);
                                 }
-                                callback();
+                                const text = 'INSERT INTO "PackagesProductionStatus" ("orderID", "packageNr", "statusCode") VALUES($1,$2,$3)';
+                                const values = [Order.orderID, packageNr, 0];
+                                query(text, values, (err, res) => {
+                                    if (err) {
+                                        console.log(err.stack);
+                                    }
+                                    callback();
+                                });
                             });
                         } else {
                             callback();
