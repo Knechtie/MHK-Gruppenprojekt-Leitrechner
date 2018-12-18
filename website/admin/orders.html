@@ -76,7 +76,7 @@
     });
 </script>
 
-<h4>Bestellung Löschen</h4>
+<h4>Bestellungen Löschen</h4>
 
 <div class="alert alert-secondary" role="alert" id="messageBoxEdit">
     Beim Löschen einer Bestellung werden alle zugehörigen Pakete aus der Datenbank des Leitrechners gelöscht.
@@ -94,6 +94,10 @@
     </div>
 </form>
 
+<div class="col">
+    <button id="deleteAllButton" type="submit" href="#" class="btn btn-danger">Alle Löschen</button>
+</div>
+
 <script>
     $("#deleteButton").click(function (e) {
         e.preventDefault();
@@ -109,6 +113,18 @@
             console.log("You pressed OK!");
             socket.emit("deleteOrder", id)
             $('#inputOrderID').val("")
+        } else {
+            console.log("You pressed Cancel!");
+        }
+    })
+</script>
+<script>
+    $("#deleteAllButton").click(function (e) {
+        e.preventDefault();
+        
+        if (confirm(`Sind Sie sich sicher, dass Sie die ALLE Bestellungen löschen wollen?`)) {
+            console.log("You pressed OK!");
+            socket.emit("deleteAllOrders")
         } else {
             console.log("You pressed Cancel!");
         }

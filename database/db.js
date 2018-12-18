@@ -659,7 +659,7 @@ function deleteOrder(orderID, callback) {
             });
         },
         function (customerID, totalActiveOrdersOfCustomer, callback) {
-            if (totalActiveOrdersOfCustomer == 1){
+            if (totalActiveOrdersOfCustomer == 1) {
                 query(`DELETE FROM "Customers" WHERE "customerID"=$1`, [customerID], (err, res) => {
                     if (err) {
                         console.log(err.stack);
@@ -667,8 +667,7 @@ function deleteOrder(orderID, callback) {
                     }
                     callback();
                 });
-            }
-            else{
+            } else {
                 callback();
             }
         },
@@ -679,6 +678,27 @@ function deleteOrder(orderID, callback) {
                     callback(err);
                 }
                 callback();
+            });
+        }
+    ], function (err, result) {
+        callback();
+    });
+}
+
+function deleteAllOrders(callback) {
+    async.waterfall([
+        function (callback) {
+            query(`SELECT "orderID" FROM "Orders"`, [], (err, res) => {
+                if (err) {
+                    console.log(err.stack);
+                    callback(err);
+                }
+                callback(null, res.rows);
+            });
+        },
+        function (orderIDs, callback) {
+            async.forEachOfSeries(orderIDs, function (ID, key, callback) {
+                deleteOrder(ID.orderID, callback);
             });
         }
     ], function (err, result) {
@@ -703,5 +723,6 @@ module.exports = {
     createGiveaway: createGiveaway,
     editGiveaway: editGiveaway,
     queryStats: queryStats,
-    deleteOrder: deleteOrder
+    deleteOrder: deleteOrder,
+    deleteAllOrders: deleteAllOrders
 };
