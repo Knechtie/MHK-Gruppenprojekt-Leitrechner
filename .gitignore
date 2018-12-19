@@ -6,3 +6,6 @@ package-lock.json
 
 #Visual Studio Code
 .vscode
+
+#Generierte Ordner
+website/admin/giveawayPictures
