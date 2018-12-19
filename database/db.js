@@ -527,7 +527,7 @@ function queryProducts(callback) {
 }
 
 function queryAllOrders(callback) {
-    query('SELECT   "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages","public"."PackagesProductionStatus"."status","public"."PackagesProductionStatus"."lastUpdate" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" order by "orderID" asc', (err, res) => {
+    query('SELECT DISTINCT "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages","public"."PackagesProductionStatus"."status","public"."PackagesProductionStatus"."lastUpdate" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" order by "orderID" asc', (err, res) => {
         if (err) {
             console.log(err.stack);
             callback();
