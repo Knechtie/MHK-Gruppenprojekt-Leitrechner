@@ -31,7 +31,9 @@ var usv = require("./usv/usvSystemShutdown");
 
 usv = new usv();
 
-
+db.init(() => {
+   db.automaticDBCleanup();
+});
 
 const date = new Date();
 console.log('Server Startet um ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds() + ' Uhr');
@@ -90,23 +92,13 @@ PLCLogging = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt"
 
 var io = require('socket.io')(server);
 
-var databaseInitialised = false;
 
 io.on('connection', function (socket) {
     console.log('a user connected');
-    if (!databaseInitialised) {
-        databaseInitialised = true;
-        db.init(() => {
-            console.log("Datenbank initialisiert");
-            db.queryProducts((productData) => {
-                socket.emit('loadProducts', productData);
-            });
-        });
-    } else {
-        db.queryProducts((productData) => {
-            socket.emit('loadProducts', productData);
-        });
-    }
+    db.queryProducts((productData) => {
+        socket.emit('loadProducts', productData);
+    });
+
     socket.on('disconnect', function () {
         console.log('user disconnected');
     });
@@ -223,14 +215,14 @@ io.on('connection', function (socket) {
         }
     });
 
-    socket.on('sendOrder', function(data){
+    socket.on('sendOrder', function (data) {
         console.log("____");
 
         console.log(data);
         data.deliveryDate = new Date(data.deliveryDate);
         data.deliveryDate += 1000 * 60 * 60;
         data.deliveryDate = new Date(data.deliveryDate);
-    
+
         const Order = {
             orderID: undefined
         };
@@ -253,13 +245,13 @@ io.on('connection', function (socket) {
         ]);
     });
 
-    socket.on("deleteOrder", function(orderID){
-        db.deleteOrder(orderID, ()=>{
+    socket.on("deleteOrder", function (orderID) {
+        db.deleteOrder(orderID, () => {
             emitloadOrdersAdmin();
         });
     });
-    socket.on("deleteAllOrders", function(){
-        db.deleteAllOrders(()=>{
+    socket.on("deleteAllOrders", function () {
+        db.deleteAllOrders(() => {
             emitloadOrdersAdmin();
         });
     });
