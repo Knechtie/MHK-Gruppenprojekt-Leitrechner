@@ -32,6 +32,9 @@ module.exports = class communicationPLC extends EventEmitter {
         this.Production = new net(2501, host, ">>>Produktion Kommunikation<<<", this.productionReceive);
         this.SteinConveyor = new net(2503, host, ">>>Stein-Band Kommunikation<<<", this.steinReceive);
         this.Warehouse = new net(2504, host, ">>>Lager Kommunikation<<<", this.warehouseReceive);
+
+        this.PDUwhenConnected();
+        this.ADUwhenConnected();
     }
 
     //*****************************************
@@ -87,7 +90,7 @@ module.exports = class communicationPLC extends EventEmitter {
             case "ORI": //Auftragsstatusmeldung: Diese Meldung wird benutzt um den Leitrechner über den aktuellen Status eines Pakets zu informieren
                 this.ORI(msg);
                 break;
-            case "TIU": 
+            case "TIU":
                 this.TIUreceive(msg);
                 break;
             default:
@@ -103,27 +106,22 @@ module.exports = class communicationPLC extends EventEmitter {
     //*****************************************
     //Hilfsfunktionen
     //*****************************************
-    TIUwhenConnected() {
-        //Timeout-funktion (Verzögerung), da das event zeitgelich gefeuert wird wie das event in TCP.js, welches das in this.TIUsend() abgefragte bit "tcpInstance.clientConnected" auf true schaltet (paralelle Abarbeitung der beiden Events). Mit der Verzögerung wird dies umgangen :-)
+
+    PDUwhenConnected() {
+        this.SteinConveyor.on("connection", () => {
+            this.PDU(this.SteinConveyor, "KOM");
+        });
+    }
+
+    ADUwhenConnected() {
         this.FlexlinkBuffer.on("connection", () => {
-            setTimeout(() => {
-                this.TIUhandler();
-            }, 2);
+            this.ADU(this.FlexlinkBuffer, "PUF");
         });
         this.Production.on("connection", () => {
-            setTimeout(() => {
-                this.TIUhandler();
-            }, 2);
+            this.ADU(this.Production, "PRD");
         });
         this.SteinConveyor.on("connection", () => {
-            setTimeout(() => {
-                this.TIUhandler();
-            }, 2);
-        });
-        this.Warehouse.on("connection", () => {
-            setTimeout(() => {
-                this.TIUhandler();
-            }, 2);
+            this.ADU(this.SteinConveyor, "KOM");
         });
     }
 
@@ -195,11 +193,11 @@ module.exports = class communicationPLC extends EventEmitter {
     }
 
 
-    TIUreceive(msg){
+    TIUreceive(msg) {
         //TIU_20181206160350
         let year = msg.data.substr(4, 4);
         let month = msg.data.substr(8, 2);
-        let day =msg.data.substr(10, 2);
+        let day = msg.data.substr(10, 2);
         let hours = msg.data.substr(12, 2);
         let minutes = msg.data.substr(14, 2);
         let seconds = msg.data.substr(16, 2);
@@ -282,7 +280,7 @@ module.exports = class communicationPLC extends EventEmitter {
                     packageNr: element.packageNr.toString().padStart(2, "0"),
                     totalNumberOfPackages: element.totalNumberOfPackages.toString().padStart(2, "0"),
                     orderDate: formatDateTime(element.orderDate),
-                    deliveryDate: formatDateTime(element.deliveryDate), 
+                    deliveryDate: formatDateTime(element.deliveryDate),
                     firstName: element.firstName.toString().padEnd(40, " "),
                     lastName: element.lastName.toString().padEnd(40, " "),
                     streetAndNumber: element.streetAndNumber.toString().padEnd(50, " "),

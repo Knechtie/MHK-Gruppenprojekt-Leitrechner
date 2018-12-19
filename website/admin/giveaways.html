@@ -172,6 +172,7 @@
                 data.imageData = evt.target.result
                 // send a custom socket message to server
                 socket.emit('createGiveaway', data);
+                alert("Promotionsartikel wird erstellt...");
             };
             reader.readAsDataURL(file);
         }
