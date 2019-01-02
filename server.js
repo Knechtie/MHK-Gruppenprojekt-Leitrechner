@@ -1,62 +1,68 @@
 /*jshint node: true */
 /*jshint esversion: 6 */
-var express = require('express');
-var app = express();
-var os = require('os');
-var bodyParser = require('body-parser');
-var fs = require("fs");
+
+
+//*****************************************
+//Module Importieren
+//*****************************************
+const express = require('express');
+const app = express();
+const io = require('socket.io')(server);
+const os = require('os');
+const bodyParser = require('body-parser');
+const fs = require("fs");
 const exec = require('child_process').exec;
-var db = require("./database/db.js");
-var async = require("async");
+const db = require("./database/db.js");
+const async = require("async");
+const comPLC = require('./TCP/communicationPLC.js');
+const PLCLogging = require('./logging/loggerPLC.js');
+const logger = require('./logging/logger.js');
+const logConfig = require('./logging/loggerConfig.js');
+const isInstalledGlobally = require('is-installed-globally');
+const USV = require("./usv/usvSystemShutdown");
 
 
-var contents = fs.readFileSync('data/kundendaten.json');
-var customerData = JSON.parse(contents);
+//*****************************************
+//Initialisierungen
+//*****************************************
 
-
-var communicationPLC = require('./TCP/communicationPLC.js');
-var PLCLogging = require('./logging/loggerPLC.js');
-
-
-var nodeLogging = require('./logging/logger.js');
-var logConfig = require('./logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
-
+//Logging:
+var nodeLogging = new logger("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
 nodeLogging.logger.INFO("Logging in server.js ok");
 
-const isInstalledGlobally = require('is-installed-globally');
+//Unterbrechungsfreie Spannungsversorgung:
+usv = new USV();
 
-
-var usv = require("./usv/usvSystemShutdown");
-
-usv = new usv();
-
+//Datenbank:
 db.init(() => {
-   db.automaticDBCleanup();
+    db.automaticDBCleanup();
 });
 
+
+//Webserver:
 const date = new Date();
-console.log('Server Startet um ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds() + ' Uhr');
+nodeLogging.logger.INFO('Server Startet um ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds() + ' Uhr');
 
 app.use(express.static('website'));
 
 if (!isInstalledGlobally && !fs.existsSync(__dirname + "/node_modules/bootstrap")) {
-    console.log("Lokal installiert");
+    nodeLogging.logger.DEBUG("Lokal installiert");
     app.use('/node_modules', express.static("../"));
 } else {
-    console.log("Global installiert oder Pakete alle in node_modules des pakets fstaup17-gruppenprojekt");
+    nodeLogging.logger.DEBUG("Global installiert oder Pakete alle in node_modules des pakets fstaup17-gruppenprojekt");
     app.use('/node_modules', express.static('node_modules'));
 }
 
 var IPlist = [];
-//console.log(os.networkInterfaces())
 try {
+    //Versucht eine IPv4 Adresse am RJ45-Anschluss zu finden und fügt diese in eine Liste ein
     os.networkInterfaces().eth0.forEach(element => {
         if (element.family == 'IPv4') {
             IPlist.push(element.address);
         }
     });
 } catch (error) {
+    //Wenn keine IPv4 Adresse am RJ45-Anschluss verfügbar, mit WLAN versuchen
     os.networkInterfaces().wlan0.forEach(element => {
         if (element.family == 'IPv4') {
             IPlist.push(element.address);
@@ -64,47 +70,37 @@ try {
     });
 }
 
-
-//var raspberryIP = os.networkInterfaces().eth0[1].address; //evtl anpassen wenn sich IPs des interface ändern
 var raspberryIP = IPlist[0];
-//console.log(os.networkInterfaces())
-//console.log(IPlist)
-
 const webserverPort = 3000;
 
-
 var server = app.listen(webserverPort, raspberryIP, () => {
-    console.log('listening...');
-    var datum = new Date();
-    console.log(datum);
-
-    datum.setDate(32);
-    datum.setHours(date.getHours() + 4);
-    console.log(datum);
-    console.log("Die IP ist: " + server.address().address);
-
-    console.log(os.hostname());
+    nodeLogging.logger.INFO('Webserver ist bereit...');
+    nodeLogging.logger.INFO("Die IP ist: " + server.address().address);
 });
 
+//Kommunikationsbaustein für PLC-Kommunikation:
+var communicationPLC = new comPLC(raspberryIP, webserverPort);
+//TCP-Logging der PLCs:
+var PLCLog = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt");
 
-var communicationPLC = new communicationPLC(raspberryIP, webserverPort);
-PLCLogging = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt");
 
-var io = require('socket.io')(server);
-
+//*****************************************
+//Web-Socket Events
+//*****************************************
 
 io.on('connection', function (socket) {
-    console.log('a user connected');
+    nodeLogging.logger.INFO('Verbindung mit Client aufgebaut');
     db.queryProducts((productData) => {
         socket.emit('loadProducts', productData);
     });
 
     socket.on('disconnect', function () {
-        console.log('user disconnected');
+        nodeLogging.logger.INFO('Verbindung mit Client beendet');
     });
 
     socket.on("dateTime", function (data) {
-        console.log(data);
+        //Zeitinformation von Client erhalten
+
         var date = new Date(data);
 
         var dateTime = {
@@ -116,27 +112,26 @@ io.on('connection', function (socket) {
             seconds: date.getSeconds()
         };
 
-        console.log(dateTime);
+        nodeLogging.logger.DEBUG(dateTime);
 
+        //Systemzeit des Raspberry Pis aktualisieren
         exec("sudo date --set '" + dateTime.year + "-" + dateTime.month + "-" + dateTime.dayOfMonth + " " + dateTime.hours + ":" + dateTime.minutes + ":" + dateTime.seconds + "'", (error, stdout, stderr) => {
             if (error) {
-                console.error(`exec error: ${error}`);
+                nodeLogging.logger.ERROR(`exec error: ${error}`);
                 return;
             }
-            console.log(`stdout: ${stdout}`);
-            console.log(`stderr: ${stderr}`);
         });
     });
 
     socket.on('createProduct', function (msg) {
-        console.log(msg);
+        nodeLogging.logger.DEBUG(msg);
         db.createProduct(msg.productName, msg.description, msg.size, msg.drillParameters, msg.weight, msg.price, 0, () => {
             emitloadProductsAdmin();
             communicationPLC.sendItemDataToPLC();
         });
     });
     socket.on('editProduct', function (msg) {
-        console.log(msg);
+        nodeLogging.logger.DEBUG(msg);
         db.editProduct(msg.productID, msg.deprecated, msg.delete, () => {
             emitloadProductsAdmin();
             communicationPLC.sendItemDataToPLC();
@@ -144,35 +139,29 @@ io.on('connection', function (socket) {
 
     });
     socket.on('getProductsAdmin', function (msg) {
-        console.log("Produkte laden");
+        nodeLogging.logger.DEBUG("Produkte auf Adminseite laden...");
         emitloadProductsAdmin();
     });
     socket.on('getOrdersAdmin', function (msg) {
-        console.log("Orders laden");
+        nodeLogging.logger.DEBUG("Orders auf Adminseite laden...");
         emitloadOrdersAdmin();
     });
-
 
     socket.on('createGiveaway', function (msg) {
         async.series([
             function (callback) {
-                console.log("Funktion 1");
                 handleGiveawayPicture(msg, msg.giveawayShelfID, 'store', (relativeFilePath) => {
                     msg.relativeFilePath = relativeFilePath;
                     callback();
                 });
             },
             function (callback) {
-                console.log("Funktion 2");
                 db.createGiveaway(msg.giveawayShelfID, msg.name, msg.weight, msg.relativeFilePath, (err) => {
-                    if (err != undefined) {
-                        console.log("feeeeehler!!!!########");
-                    }
+                    if (err != undefined) {}
                     callback();
                 });
             },
             function (callback) {
-                console.log("Funktion 3");
                 emitloadGiveawaysAdmin();
                 communicationPLC.sendGiveawaysToPLC();
                 callback();
@@ -180,13 +169,13 @@ io.on('connection', function (socket) {
         ]);
     });
     socket.on('editGiveaway', function (msg) {
-        console.log(msg);
+        nodeLogging.logger.DEBUG(msg);
         db.editGiveaway(msg.giveawayShelfID, msg.delete, emitloadGiveawaysAdmin);
         handleGiveawayPicture(undefined, msg.giveawayShelfID, 'delete', function () {});
         communicationPLC.sendGiveawaysToPLC();
     });
     socket.on('getGiveawaysAdmin', function (msg) {
-        console.log("Giveaways laden");
+        nodeLogging.logger.DEBUG("Giveaways auf Adminseite laden...");
         emitloadGiveawaysAdmin();
     });
     socket.on('testmodus', function (msg) {
@@ -197,7 +186,6 @@ io.on('connection', function (socket) {
     });
     socket.on('raspberryConfig', function (msg) {
         if (msg == "shutdown") {
-            console.log("runterrr");
             exec("sudo shutdown now", (error, stdout, stderr) => {
                 if (error) {
                     console.error(`exec error: ${error}`);
@@ -205,7 +193,6 @@ io.on('connection', function (socket) {
                 }
             });
         } else if (msg == "reboot") {
-            console.log("neusatart");
             exec("sudo reboot", (error, stdout, stderr) => {
                 if (error) {
                     console.error(`exec error: ${error}`);
@@ -216,9 +203,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('sendOrder', function (data) {
-        console.log("____");
-
-        console.log(data);
+        nodeLogging.logger.DEBUG(data);
         data.deliveryDate = new Date(data.deliveryDate);
         data.deliveryDate += 1000 * 60 * 60;
         data.deliveryDate = new Date(data.deliveryDate);
@@ -228,15 +213,12 @@ io.on('connection', function (socket) {
         };
         async.series([
             function (callback) {
-                console.log("Funktion 1");
                 db.websiteOrderHandler(data, (orderID) => {
                     Order.orderID = orderID;
-                    console.log(Order.orderID + " #######");
                     callback();
                 });
             },
             function (callback) {
-                console.log("Funktion 2" + Order.orderID);
                 emitloadOrdersAdmin();
                 emitloadDashboardData();
                 communicationPLC.sendOrderToPLC(Order.orderID);
@@ -244,7 +226,6 @@ io.on('connection', function (socket) {
             }
         ]);
     });
-
     socket.on("deleteOrder", function (orderID) {
         db.deleteOrder(orderID, () => {
             emitloadOrdersAdmin();
@@ -255,7 +236,6 @@ io.on('connection', function (socket) {
             emitloadOrdersAdmin();
         });
     });
-
 });
 
 communicationPLC.on("refreshWebsiteProducts", function () {
@@ -295,42 +275,40 @@ db.eventEmitter.on('stockChanged', () => {
     refreshStock();
 });
 
-
 function refreshStock() {
-    console.log("refresh stock");
+    nodeLogging.logger.DEBUG("Refresh stock");
     db.queryProducts((productData) => {
         io.emit('refreshStock', productData);
     });
 }
 
-function handleGiveawayPicture(msg, filename, option, callback) {
 
+//*****************************************
+//Giveaway Bild speichern
+//*****************************************
+function handleGiveawayPicture(msg, filename, option, callback) {
     var customDirName = "admin/giveawayPictures";
     var relativeFilePath = customDirName + "/" + filename + ".jpg";
 
     switch (option) {
         case 'delete':
-            console.log("Lösche Bild " + filename);
+            nodeLogging.logger.DEBUG("Lösche Bild " + filename);
             fs.unlink(__dirname + "/website/" + relativeFilePath, (err) => {
                 if (err) {
-                    console.log(`Warnung: Es war kein bild für Giveaway ${filename} vorhanden!`);
+                    nodeLogging.logger.DEBUG(`Warnung: Es war kein bild für Giveaway ${filename} vorhanden!`);
                 }
             });
             break;
         case 'store':
 
-            console.log("Giveaway Bild verarbeiten...");
+            nodeLogging.logger.DEBUG("Giveaway Bild verarbeiten...");
 
             var base64Data = decodeBase64Image(msg.imageData);
-            // if directory is not already created, then create it, otherwise overwrite existing image
-
-            // write/save the image
-            // TODO: extract file's extension instead of hard coding it
 
             async.series([
                 function (callback) {
-                    console.log("Funktion 1");
                     if (!fs.existsSync(__dirname + "/website/" + customDirName)) {
+                        //Erstelle Verzeichnis wenn es noch nicht vorhanden
                         fs.mkdir(__dirname + "/website/" + customDirName, function (e) {
                             if (!e) {
                                 console.log("Created new directory without errors.");
@@ -345,7 +323,7 @@ function handleGiveawayPicture(msg, filename, option, callback) {
                     }
                 },
                 function (callback) {
-                    console.log("Funktion 2");
+                    //Datei speichern
                     fs.writeFile(__dirname + "/website/" + relativeFilePath, base64Data.data, function (err) {
                         if (err) {
                             console.log('ERROR:: ' + err);
@@ -358,7 +336,7 @@ function handleGiveawayPicture(msg, filename, option, callback) {
 
             break;
     }
-    console.log(relativeFilePath);
+    nodeLogging.logger.DEBUG(relativeFilePath);
     callback(relativeFilePath);
 }
 
@@ -374,17 +352,14 @@ function decodeBase64Image(dataString) {
     return response;
 }
 
-
-
-
-
+//*****************************************
+//Login verarbeiten
+//*****************************************
 var jsonParser = bodyParser.json();
 
 app.post("/login", jsonParser, (request, response) => {
     var data = request.body;
 
-    console.log(data);
-    console.log("____");
     if (typeof data.hash === "undefined") {
         db.getSaltOfUser(data.username, (salt) => {
             if (typeof salt !== "undefined") {
@@ -399,7 +374,7 @@ app.post("/login", jsonParser, (request, response) => {
                 console.log("Hash ok!");
                 response.sendFile(__dirname + "/website/admin/bodyMain.html");
             } else {
-                console.log("hash nok");
+                console.log("Hash nok");
                 response.status(200).send("0");
             }
         });
@@ -407,7 +382,10 @@ app.post("/login", jsonParser, (request, response) => {
 });
 
 
-
+//*****************************************
+//Zufällige Kundendaten
+//*****************************************
+var customerData = JSON.parse(fs.readFileSync('data/kundendaten.json'));
 
 function randomCustomer() {
     var randomCustomerNumber = getRndInteger(0, 999); //Zufallszahl von 0 bis 999
@@ -427,8 +405,3 @@ function randomCustomer() {
 function getRndInteger(min, max) { //einschließlich min max
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-exports.dataFromPLC = function (data) {
-    console.log(data);
-
-};

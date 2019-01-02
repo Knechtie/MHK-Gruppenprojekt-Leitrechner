@@ -2,13 +2,14 @@
 /*jshint node: true */
 "use strict";
 
-var TCPlogMsg = require('../TCP/TCPlogMsg.js');
-var Logger = require("./logger.js");
-var logConfig = require('./loggerConfig.js');
-
-var nodeLogging = require('../logging/logger.js');
-var logConfig = require('../logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
+//*****************************************
+//Module Importieren
+//*****************************************
+const TCPlogMsg = require('../TCP/TCPlogMsg.js');
+const Logger = require("./logger.js");
+const nodeLog = require('../logging/logger.js');
+const logConfig = require('../logging/loggerConfig.js');
+const nodeLogging = new nodeLog("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
 
 nodeLogging.logger.INFO("Logging in loggerPLC.js ok");
 

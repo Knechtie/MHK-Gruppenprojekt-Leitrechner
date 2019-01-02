@@ -2,18 +2,17 @@
 /*jshint node: true */
 "use strict";
 
+//*****************************************
+//Module Importieren
+//*****************************************
 const net = require('net');
-//const EventEmitter = require('events');
+const nodeLog = require('../logging/logger.js');
+const logConfig = require('../logging/loggerConfig.js');
 
-var nodeLogging = require('../logging/logger.js');
-var logConfig = require('../logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
-
+const nodeLogging = new nodeLog("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
 nodeLogging.logger.INFO("Logging in TCP.js ok");
 
 module.exports = class TCPserver extends net.Server {
-
-
     constructor(port, host, symbolicName = "", dataEventListener = function () {}) {
         //Vertauschen der optionalen Parameter abfangen:
         if (typeof symbolicName === "function") {

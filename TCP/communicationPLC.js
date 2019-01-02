@@ -2,16 +2,17 @@
 /*jshint node: true */
 "use strict";
 
-var net = require('./TCP.js');
-var db = require("../database/db.js");
-var async = require("async");
+//*****************************************
+//Module Importieren
+//*****************************************
+const net = require('./TCP.js');
+const db = require("../database/db.js");
+const async = require("async");
 const exec = require('child_process').exec;
-
 const EventEmitter = require('events');
-
-var nodeLogging = require('../logging/logger.js');
-var logConfig = require('../logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
+const nodeLog = require('../logging/logger.js');
+const logConfig = require('../logging/loggerConfig.js');
+var nodeLogging = new nodeLog("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
 
 nodeLogging.logger.INFO("Logging in communicationPLC.js ok");
 
@@ -82,9 +83,6 @@ module.exports = class communicationPLC extends EventEmitter {
     }
     warehouseReceive(msg) {
         this.msgType = communicationPLC.parseMsgType(msg);
-        console.log("________");
-        console.log(this.msgType);
-        console.log("________");
 
         switch (this.msgType) {
             case "ORI": //Auftragsstatusmeldung: Diese Meldung wird benutzt um den Leitrechner über den aktuellen Status eines Pakets zu informieren
@@ -191,8 +189,7 @@ module.exports = class communicationPLC extends EventEmitter {
             });
         });
     }
-
-
+    
     TIUreceive(msg) {
         //TIU_20181206160350
         let year = msg.data.substr(4, 4);
@@ -203,16 +200,11 @@ module.exports = class communicationPLC extends EventEmitter {
         let seconds = msg.data.substr(16, 2);
         var date = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-        console.log("DATUMMMM:");
-        console.log(date);
-
         exec(`sudo date --set '${date}'`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`exec error: ${error}`);
+                nodeLogging.logger.ERROR(`exec error: ${error}`);
                 return;
             }
-            console.log(`stdout: ${stdout}`);
-            console.log(`stderr: ${stderr}`);
         });
         setInterval(this.TIUhandler, 60000);
     }
@@ -224,8 +216,6 @@ module.exports = class communicationPLC extends EventEmitter {
             tcpInstance.writeData(dataString, clientID, () => {});
         }
     }
-
-
 
     PDU(tcpInstance, clientID) {
         const text = 'SELECT "giveawayShelfID","name","pictureURL" FROM "Giveaways" ORDER BY "giveawayShelfID" ASC';
@@ -239,7 +229,7 @@ module.exports = class communicationPLC extends EventEmitter {
                 element.pictureURL = element.pictureURL.replace("PORT", this.webserverPort);
             });
 
-            console.log(res.rows);
+            nodeLogging.logger.DEBUG(res.rows);
             async.eachOfSeries(res.rows, function (element, key, callback) {
 
                 const data = {
@@ -271,9 +261,9 @@ module.exports = class communicationPLC extends EventEmitter {
 
             let formatDateTime = this.formatDateTime; //wird benötigt um die funktion unten in async.eachOfSeries aufrufen zu können
 
-            console.log(res.rows);
+            nodeLogging.logger.DEBUG(res.rows);
             async.eachOfSeries(res.rows, function (element, key, callback) {
-                console.log(this);
+                nodeLogging.logger.DEBUG(this);
 
                 let data = {
                     orderID: element.orderID.toString().padStart(6, "0"),
@@ -303,7 +293,7 @@ module.exports = class communicationPLC extends EventEmitter {
                     if (err) {
                         nodeLogging.logger.ERROR(err.stack);
                     }
-                    console.log(res.rows);
+                    nodeLogging.logger.DEBUG(res.rows);
 
                     let productData = [{
                             productID: undefined,
@@ -347,7 +337,7 @@ module.exports = class communicationPLC extends EventEmitter {
                             data.itemData = data.itemData.concat("--", "0".padStart(6, "0"), "0".padStart(1, "0"));
                         }
                     });
-                    console.log(data);
+                    nodeLogging.logger.DEBUG(data);
 
 
                     let dataString = "ORU_";
@@ -356,7 +346,7 @@ module.exports = class communicationPLC extends EventEmitter {
                     for (i in data) {
                         dataString += data[i];
                     }
-                    console.log(dataString);
+                    nodeLogging.logger.DEBUG(dataString);
                     tcpInstance.writeData(dataString, clientID, callback);
                 });
             });
@@ -413,12 +403,12 @@ module.exports = class communicationPLC extends EventEmitter {
     }
 
     ADI(msg) {
-        console.log(msg);
+        nodeLogging.logger.DEBUG(msg);
         const data = {
             productID: parseInt(msg.data.substr(4, 6)),
             countOnStock: parseInt(msg.data.substr(10, 2))
         };
-        console.log(data);
+        nodeLogging.logger.DEBUG(data);
         const text = 'UPDATE "Products" SET "countOnStock"=$1 WHERE "productID"=$2';
         const values = [data.countOnStock, data.productID];
         db.query(text, values, (err, res) => {

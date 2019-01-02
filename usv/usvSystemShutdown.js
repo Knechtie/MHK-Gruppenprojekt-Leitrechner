@@ -2,15 +2,13 @@
 /*jshint esversion: 6 */
 
 const Gpio = require('onoff').Gpio;
+const execSync = require('child_process').execSync;
+const nodeLog = require('../logging/logger.js');
+const logConfig = require('../logging/loggerConfig.js');
 
-
-var nodeLogging = require('../logging/logger.js');
-var logConfig = require('../logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
+var nodeLogging = new nodeLog("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
 
 nodeLogging.logger.INFO("Logging in usvSystemShutdown.js ok");
-
-const execSync = require('child_process').execSync;
 
 
 module.exports = class USV {
@@ -22,12 +20,12 @@ module.exports = class USV {
       });
       this.shutdownHandler();
     } catch (error) {
-      console.log("Fehler beim Zugriff auf GPIO im USV-Modul");
+      nodeLogging.logger.ERROR("Fehler beim Zugriff auf GPIO im USV-Modul");
     }
   }
 
   shutdownHandler() {
-    console.log(this.tPin.readSync());
+    nodeLogging.logger.DEBUG(this.tPin.readSync());
     this.tPin.watch((err, value) => {
       nodeLogging.logger.INFO(`USV-Pin Status: ${value}`);
       if (value == 1) {

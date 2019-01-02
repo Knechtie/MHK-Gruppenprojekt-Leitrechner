@@ -1,38 +1,23 @@
 /*jshint esversion: 6 */
 /*jshint node: true */
 
-var async = require("async");
-var bcrypt = require('bcryptjs');
 
-var events = require('events');
-var eventEmitter = new events.EventEmitter();
-
-
-var nodeLogging = require('../logging/logger.js');
-var logConfig = require('../logging/loggerConfig.js');
-var nodeLogging = new nodeLogging("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
-
-nodeLogging.logger.INFO("Logging in db.js ok");
-
-
-
-
-
+//*****************************************
+//Module Importieren
+//*****************************************
+const async = require("async");
+const bcrypt = require('bcryptjs');
+const events = require('events');
+const logger = require('../logging/logger.js');
+const logConfig = require('../logging/loggerConfig.js');
 const {
     Pool
 } = require('pg');
-const pg = require('pg');
-
-const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'mhkDatabase',
-    password: 'postgres',
-    port: 5432,
-});
 
 
-
+//*****************************************
+//Definition diverser Objekte
+//*****************************************
 const Customer = {
     customerID: undefined,
     title: "",
@@ -62,7 +47,9 @@ const Package = {
 };
 
 
-
+//*****************************************
+//Funktion, die für alle Datenbankabfragen genutzt wird
+//*****************************************
 var counter = 0;
 
 function query(text, params, callback) {
@@ -70,7 +57,7 @@ function query(text, params, callback) {
     return pool.query(text, params, (err, res) => {
         const duration = Date.now() - start;
         counter += 1;
-        console.log('executed query', {
+        nodeLogging.logger.DEBUG('executed query', {
             text,
             duration /*, rows: res.rowCount */ ,
             params,
@@ -81,6 +68,27 @@ function query(text, params, callback) {
         }
     });
 }
+
+
+//*****************************************
+//Initialisierungen
+//*****************************************
+
+//Logging:
+var nodeLogging = new logger("/media/usb/Logging", "nodeJS.txt", logConfig.general.format);
+nodeLogging.logger.INFO("Logging in db.js ok");
+
+//Event Emmitter:
+var eventEmitter = new events.EventEmitter();
+
+//PostgreSQL:
+const pool = new Pool({
+    user: 'postgres',
+    host: 'localhost',
+    database: 'mhkDatabase',
+    password: 'postgres',
+    port: 5432,
+});
 
 const queries = {
     alterDatabase: `alter DATABASE "mhkDatabase" SET lc_monetary = "de_DE@euro"`,
@@ -94,18 +102,17 @@ const queries = {
     tableLoginWebsite: 'CREATE TABLE "LoginWebsite" ("userID" SERIAL PRIMARY KEY, username TEXT, salt text, hash text)'
 };
 
-//Serieller Ablauf weil sich die Tabellen referenzieren und bei nicht seriellem ablauf die referenzierende Tabelle vor der referenztabelle erstellt werden würde
-init = function (callback) {
+function init(callback) {
     async.eachOfSeries(queries, function (value, key, callback) {
-        console.log(key);
+        //Serieller Ablauf weil sich die Tabellen referenzieren und bei nicht seriellem ablauf die referenzierende Tabelle vor der referenztabelle erstellt werden würde
+        nodeLogging.logger.DEBUG(key);
         query(value, (err, res) => {
             if (err) {
                 if (value == queries.alterDatabase) {
-                    console.log("--->!!!!!!!!sudo raspi-config und unter localisation options de_DE@euro mit Leertaste wählen und mit Enter bestätigen und dann Neustarten!!!!!!!!<---");
-                    console.log("--->!!!!!!!!Oder Datenbank nicht vorhanden --> andere Error-Logs prüfen!!!!!!!!<---");
-
+                    nodeLogging.logger.ERROR("--->!!!!!!!!sudo raspi-config und unter localisation options de_DE@euro mit Leertaste wählen und mit Enter bestätigen und dann Neustarten!!!!!!!!<---");
+                    nodeLogging.logger.ERROR("--->!!!!!!!!Oder Datenbank nicht vorhanden --> andere Error-Logs prüfen!!!!!!!!<---");
                 }
-                console.log(err.stack);
+                nodeLogging.logger.ERROR(err.stack);
                 callback(err);
             } else {
                 callback();
@@ -113,13 +120,14 @@ init = function (callback) {
         });
     }, function (err) {
         if (err) {
-            console.error(err.message);
+            nodeLogging.logger.ERROR(err.message);
             if (typeof callback === 'function') {
                 callback();
             }
         } else {
             newStandardUserLogin();
             if (process.env.NODE_ENV === 'development') {
+                //Gestartet in der Umgebung zur Entwicklung
                 newSampleProducts();
             }
             if (typeof callback === 'function') {
@@ -127,7 +135,7 @@ init = function (callback) {
             }
         }
     });
-};
+}
 
 function newSampleProducts() {
     const products = {
@@ -136,10 +144,10 @@ function newSampleProducts() {
         3: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 3', 'Beschreibung 3', '1', '{false, false, true, false, false}', 30, '300', '300',0)`,
     };
     async.eachOfSeries(products, function (value, key, callback) {
-        console.log(key);
+        nodeLogging.logger.DEBUG(key);
         query(value, (err, res) => {
             if (err) {
-                console.log(err.stack);
+                nodeLogging.logger.ERROR(err.stack);
                 callback(err);
             } else {
                 callback();
@@ -147,9 +155,8 @@ function newSampleProducts() {
         });
     }, function (err) {
         if (err) {
-            console.error(err.message);
+            nodeLogging.logger.ERROR(err.message);
         }
-
     });
 }
 
@@ -160,17 +167,19 @@ function newStandardUserLogin() {
     var hash = bcrypt.hashSync(pw, salt);
     query('INSERT INTO "LoginWebsite" ("username", "salt", "hash") VALUES($1, $2, $3)', [user, salt, hash], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
     });
 }
 
-
+//*****************************************
+//Login Abfragen
+//*****************************************
 function getSaltOfUser(username, callback) {
     query('SELECT salt FROM "LoginWebsite" WHERE "username"=$1', [username], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
         callback(res.rows[0]);
@@ -180,7 +189,7 @@ function getSaltOfUser(username, callback) {
 function compareHashOfUser(username, hash, callback) {
     query('SELECT hash FROM "LoginWebsite" WHERE "username"=$1', [username], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
 
@@ -189,23 +198,12 @@ function compareHashOfUser(username, hash, callback) {
         } else {
             callback(false);
         }
-
     });
 }
 
-function CreateNewCustomer(Customer, callback) {
-    const text = 'INSERT INTO "Customers" ("firstName", "lastName", "streetAndNumber", "postalCode", city) VALUES($1, $2, $3, $4, $5)'; //RETURNING *'
-    const values = [Customer.firstName, Customer.lastName, Customer.streetAndNumber, Customer.postalCode, Customer.city];
-
-    query(text, values, (err, res) => {
-        if (err) {
-            console.log(err.stack);
-        }
-        callback();
-    });
-}
-
-
+//*****************************************
+//Bestellungsabwicklung
+//*****************************************
 function websiteOrderHandler(data, callback) {
     const Customer = {
         customerID: undefined,
@@ -223,6 +221,7 @@ function websiteOrderHandler(data, callback) {
         items: [],
         deliveryDate: new Date(data.deliveryDate)
     };
+
     data.items.forEach((item, index) => {
         Order.items.push({
             productID: item.productID,
@@ -235,54 +234,53 @@ function websiteOrderHandler(data, callback) {
 
     async.series([
         function (callback) {
-            console.log("Funktion 1");
             getCreateCustomerID(Customer, (customerID) => {
                 Order.customerID = customerID;
                 callback();
             });
         },
         function (callback) {
-            console.log("Funktion 2");
             createNewOrder(Order, callback);
         },
         function (callback) {
-            console.log("Funktion 3");
-
             getLastOrderID((lastOrderID) => {
                 Order.orderID = lastOrderID;
                 callback();
             });
         },
         function (callback) {
-            console.log("Funktion 4");
             createPackages(Order, callback);
-
         },
         function (callback) {
-            console.log("Funktion 5");
             eventEmitter.emit('stockChanged');
             callback();
-
         }
-
     ], function (err) {
         if (err) {
-            //Handle the error in some way. Here we simply throw it
-            //Other options: pass it on to an outer callback, log it etc.
-            console.log(err);
-
+            nodeLogging.logger.ERROR(err);
             throw err;
         }
-        console.log('OrderHandler fertig');
-
+        nodeLogging.logger.DEBUG('OrderHandler fertig');
         callback(Order.orderID);
+    });
+}
+
+function CreateNewCustomer(Customer, callback) {
+    const text = 'INSERT INTO "Customers" ("firstName", "lastName", "streetAndNumber", "postalCode", city) VALUES($1, $2, $3, $4, $5)';
+    const values = [Customer.firstName, Customer.lastName, Customer.streetAndNumber, Customer.postalCode, Customer.city];
+
+    query(text, values, (err, res) => {
+        if (err) {
+            nodeLogging.logger.ERROR(err.stack);
+        }
+        callback();
     });
 }
 
 function getLastOrderID(callback) {
     query('SELECT "orderID" FROM "Orders" order by "orderID" desc LIMIT 1', (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
         callback(res.rows[0].orderID);
@@ -296,7 +294,7 @@ function getCreateCustomerID(Customer, callback) {
     const values = [Customer.firstName, Customer.lastName, Customer.streetAndNumber];
     query(text, values, (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             return 0;
         }
 
@@ -310,9 +308,9 @@ function getCreateCustomerID(Customer, callback) {
             });
         } else {
             //dieser Teil wird entweder durch die rekursion nach anlegen des neuen Kunden bearbeitet oder wenn der Kunde von anfang an schon exisitiert. 
-            console.log(res.rows[0]);
-            console.log("Customer ID: ");
-            console.log(res.rows[0].customerID);
+            nodeLogging.logger.DEBUG(res.rows[0]);
+            nodeLogging.logger.DEBUG("Customer ID: ");
+            nodeLogging.logger.DEBUG(res.rows[0].customerID);
             if (typeof callback === 'function') {
                 callback(res.rows[0].customerID); //Übergabe der ID entweder in den callback des rekursiven Aufrufs oder falls der Kunde schon von anfang an existiert direkt an den Callback vom 1. Aufruf der Funktion  
             }
@@ -324,11 +322,11 @@ function getCreateCustomerID(Customer, callback) {
 
 function createNewOrder(Order, callback) {
     const orderDate = new Date();
-    const text = 'INSERT INTO "Orders" ("customerID",  "deliveryDate", "orderDate") VALUES($1, $2, $3)'; //RETURNING *'
+    const text = 'INSERT INTO "Orders" ("customerID",  "deliveryDate", "orderDate") VALUES($1, $2, $3)';
     const values = [Order.customerID, Order.deliveryDate, orderDate];
     query(text, values, (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
         }
         callback();
     });
@@ -344,23 +342,23 @@ function createPackages(Order, callback) {
 
     async.forEachOfSeries(Order.items, function (product, key, callback) {
 
-        console.log(product);
-        console.log("----------------");
+        nodeLogging.logger.DEBUG(product);
+        nodeLogging.logger.DEBUG("----------------");
 
         const text = 'SELECT weight FROM "Products" WHERE "productID"=$1';
         const values = [product.productID];
         query(text, values, (err, res) => {
             if (err) {
-                console.log(err.stack);
+                nodeLogging.logger.ERROR(err.stack);
                 return;
             }
             const itemWeight = res.rows[0].weight;
-            console.log(`Weight of productID ${product.productID} is ${itemWeight} g`);
+            nodeLogging.logger.DEBUG(`Weight of productID ${product.productID} is ${itemWeight} g`);
 
             async.timesSeries(product.count, function (n, next) {
                 async.series([
                     function (callback) {
-                        console.log("Paketnummer: " + packageNr);
+                        nodeLogging.logger.DEBUG("Paketnummer: " + packageNr);
                         if (packageNr == 1) {
                             chooseGiveaway((shelfID) => {
                                 giveawayShelfID = shelfID;
@@ -372,15 +370,15 @@ function createPackages(Order, callback) {
                         }
                     },
                     function (callback) {
-                        console.log("######");
-                        console.log(itemsInPackage);
+                        nodeLogging.logger.DEBUG("######");
+                        nodeLogging.logger.DEBUG(itemsInPackage);
 
                         if (itemsInPackage >= maxItemQuantity) {
                             const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
                             const packageValues = [totalWeight, Order.orderID, packageNr];
                             query(packageQuery, packageValues, (err, res) => {
                                 if (err) {
-                                    console.log(err.stack);
+                                    nodeLogging.logger.ERROR(err.stack);
                                 }
                                 packageNr += 1;
                                 itemsInPackage = 0;
@@ -397,13 +395,13 @@ function createPackages(Order, callback) {
                             const packageValues = [Order.orderID, packageNr, giveawayShelfID];
                             query(packageQuery, packageValues, (err, res) => {
                                 if (err) {
-                                    console.log(err.stack);
+                                    nodeLogging.logger.ERROR(err.stack);
                                 }
                                 const text = 'INSERT INTO "PackagesProductionStatus" ("orderID", "packageNr", "statusCode") VALUES($1,$2,$3)';
                                 const values = [Order.orderID, packageNr, 0];
                                 query(text, values, (err, res) => {
                                     if (err) {
-                                        console.log(err.stack);
+                                        nodeLogging.logger.ERROR(err.stack);
                                     }
                                     callback();
                                 });
@@ -418,7 +416,7 @@ function createPackages(Order, callback) {
                         const values = [Order.orderID, packageNr, product.productID];
                         query(text, values, (err, res) => {
                             if (err) {
-                                console.log(err.stack);
+                                nodeLogging.logger.ERROR(err.stack);
                             }
                             itemsInPackage += 1;
                             totalWeight += itemWeight;
@@ -428,8 +426,7 @@ function createPackages(Order, callback) {
                     }
                 ], function (err) {
                     if (err) {
-                        //Handle the error in some way. Here we simply throw it
-                        //Other options: pass it on to an outer callback, log it etc.
+                        nodeLogging.logger.ERROR(err);
                         throw err;
                     }
                     next();
@@ -443,7 +440,7 @@ function createPackages(Order, callback) {
         // Anzahl der Artikel fertig durchlaufen
         async.series([
             function (callback) {
-                console.log("Paketnummer: " + packageNr);
+                nodeLogging.logger.DEBUG("Paketnummer: " + packageNr);
                 if (packageNr == 1) {
                     chooseGiveaway((shelfID) => {
                         giveawayShelfID = shelfID;
@@ -459,7 +456,7 @@ function createPackages(Order, callback) {
                 const packageValues = [totalWeight, Order.orderID, packageNr];
                 query(packageQuery, packageValues, (err, res) => {
                     if (err) {
-                        console.log(err.stack);
+                        nodeLogging.logger.ERROR(err.stack);
                     }
                     itemsInPackage = 0;
                     totalWeight = 0;
@@ -469,7 +466,7 @@ function createPackages(Order, callback) {
             function (callback) {
                 query('UPDATE "Packages" SET "totalNumberOfPackages"=$1 WHERE "orderID"=$2', [packageNr, Order.orderID], (err, res) => {
                     if (err) {
-                        console.log(err.stack);
+                        nodeLogging.logger.ERROR(err.stack);
                     }
                     callback();
                 });
@@ -483,7 +480,7 @@ function createPackages(Order, callback) {
 function decItemOnStock(productID, callback) {
     query('UPDATE "Products" SET "countOnStock"="countOnStock"-1 WHERE "productID"=$1', [productID], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
         }
         callback();
     });
@@ -492,7 +489,7 @@ function decItemOnStock(productID, callback) {
 function incStatTotalOrdered(productID) {
     query('UPDATE "Products" SET "totalOrdered"="totalOrdered"+1 WHERE "productID"=$1', [productID], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
         }
     });
 }
@@ -506,13 +503,13 @@ function chooseGiveaway(callback) {
     };
     query(queryParam, (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
         }
         var IDs = res.rows;
-        console.log("------IDs: " + IDs);
+        nodeLogging.logger.DEBUG("------IDs: " + IDs);
         if (IDs.length > 0) {
             var randomShelfID = IDs[Math.floor(Math.random() * IDs.length)][0];
-            console.log("random: " + randomShelfID);
+            nodeLogging.logger.DEBUG("random: " + randomShelfID);
             callback(randomShelfID);
         } else {
             //Keine Promotionsartikel definiert
@@ -522,11 +519,13 @@ function chooseGiveaway(callback) {
 }
 
 
-
+//*****************************************
+//Abfragen für Adminseite
+//*****************************************
 function queryProducts(callback) {
     query('SELECT "productID","productName","description", "size", "drillParameters", "countOnStock", deprecated, price, weight FROM "Products" ORDER BY "productID" ASC', (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback();
         }
         callback(res.rows);
@@ -537,7 +536,7 @@ function queryAllOrders(callback) {
     query('SELECT DISTINCT "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages","public"."PackagesProductionStatus"."statusText","public"."PackagesProductionStatus"."lastUpdate" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" order by "orderID" asc', (err, res) => {
 
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback();
         }
         callback(res.rows);
@@ -547,7 +546,7 @@ function queryAllOrders(callback) {
 function queryOrder(orderID, callback) {
     query('SELECT   "public"."Orders"."orderID", "public"."Orders"."orderDate", "public"."Orders"."deliveryDate","public"."Packages"."packageNr","public"."Packages"."totalNumberOfPackages" FROM     "public"."Packages" INNER JOIN "public"."Orders"  ON "public"."Packages"."orderID" = "public"."Orders"."orderID" LEFT JOIN "public"."PackagesProductionStatus"  ON "public"."PackagesProductionStatus"."orderID" = "public"."Packages"."orderID" WHERE "public"."Orders"."orderID" = $1', [orderID], (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback();
         }
         callback(res.rows);
@@ -557,7 +556,7 @@ function queryOrder(orderID, callback) {
 function queryGiveaways(callback) {
     query('SELECT "giveawayShelfID","name","weight", "pictureURL" FROM "Giveaways" ORDER BY "giveawayShelfID" ASC', (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback();
         }
         callback(res.rows);
@@ -567,7 +566,7 @@ function queryGiveaways(callback) {
 function queryStats(callback) {
     query(`SELECT "productID", "productName", "totalOrdered" FROM "Products" ORDER BY "productID" ASC`, (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
         callback(res.rows);
@@ -580,7 +579,7 @@ function createProduct(name, description, size, drillParameters, weight, price, 
 
     query(text, values, (err, res) => {
         if (err) {
-            console.log(err.stack);
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         }
         callback();
@@ -593,12 +592,7 @@ function createGiveaway(giveawayShelfID, name, weight, relativeFilePath, callbac
 
     query(text, values, (err, res) => {
         if (err) {
-            console.log("#####stack:");
-            console.log(err.stack);
-            console.log("#####stack Ende");
-            if (err.error == 'duplicate key value violates unique constraint "Giveaways_pkey"') {
-                console.log("jojojojojoj");
-            }
+            nodeLogging.logger.ERROR(err.stack);
             callback(err);
         } else {
             callback();
@@ -620,7 +614,7 @@ function editProduct(productID, deprecated, deleteProduct, callback) {
     if (deprecated || deleteProduct) {
         query(text, values, (err, res) => {
             if (err) {
-                console.log(err.stack);
+                nodeLogging.logger.ERROR(err.stack);
                 callback(err);
             }
             callback();
@@ -636,7 +630,7 @@ function editGiveaway(giveawayShelfID, deleteGiveaway, callback) {
         values = [giveawayShelfID];
         query(text, values, (err, res) => {
             if (err) {
-                console.log(err.stack);
+                nodeLogging.logger.ERROR(err.stack);
                 callback(err);
             }
             callback();
@@ -649,18 +643,16 @@ function deleteOrder(orderID, callback) {
         function (callback) {
             query(`SELECT "customerID" FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
                 if (err) {
-                    console.log(err.stack);
+                    nodeLogging.logger.ERROR(err.stack);
                     callback(err);
                 }
                 callback(null, res.rows[0].customerID);
             });
         },
         function (customerID, callback) {
-            console.log("2.0.");
-
             query(`SELECT * FROM "Orders" WHERE "customerID"=$1`, [customerID], (err, res) => {
                 if (err) {
-                    console.log(err.stack);
+                    nodeLogging.logger.ERROR(err.stack);
                     callback(err);
                 }
                 callback(null, customerID, res.rows.length);
@@ -670,7 +662,7 @@ function deleteOrder(orderID, callback) {
             if (totalActiveOrdersOfCustomer == 1) {
                 query(`DELETE FROM "Customers" WHERE "customerID"=$1`, [customerID], (err, res) => {
                     if (err) {
-                        console.log(err.stack);
+                        nodeLogging.logger.ERROR(err.stack);
                         callback(err);
                     }
                     callback();
@@ -682,7 +674,7 @@ function deleteOrder(orderID, callback) {
         function (callback) {
             query(`DELETE FROM "Orders" WHERE "orderID"=$1`, [orderID], (err, res) => {
                 if (err) {
-                    console.log(err.stack);
+                    nodeLogging.logger.ERROR(err.stack);
                     callback(err);
                 }
                 callback();
@@ -698,7 +690,7 @@ function deleteAllOrders(callback) {
         function (callback) {
             query(`SELECT "orderID" FROM "Orders"`, [], (err, res) => {
                 if (err) {
-                    console.log(err.stack);
+                    nodeLogging.logger.ERROR(err.stack);
                     callback(err);
                 }
                 callback(null, res.rows);
@@ -707,7 +699,7 @@ function deleteAllOrders(callback) {
         function (orderIDs, callback) {
             async.forEachOfSeries(orderIDs, function (ID, key, callback) {
                 deleteOrder(ID.orderID, callback);
-            }, function(){
+            }, function () {
                 callback();
             });
         }
@@ -716,30 +708,33 @@ function deleteAllOrders(callback) {
     });
 }
 
-function automaticDBCleanup (){
+function automaticDBCleanup() {
     async.waterfall([
         function (callback) {
             query(`SELECT DISTINCT "orderID" FROM "PackagesProductionStatus" WHERE "statusCode"=0 OR "statusCode">=60`, [], (err, res) => {
                 if (err) {
-                    console.log(err.stack);
+                    nodeLogging.logger.ERROR(err.stack);
                     callback(err);
                 }
-                console.log(res.rows);
+                nodeLogging.logger.DEBUG(res.rows);
                 callback(null, res.rows);
             });
         },
         function (orderIDs, callback) {
             async.forEachOfSeries(orderIDs, function (ID, key, callback) {
                 deleteOrder(ID.orderID, callback);
-            }, function(){
+            }, function () {
                 callback();
             });
         }
     ], function (err, result) {
-        console.log("Datenbank bereinigt!");
+        nodeLogging.logger.INFO("Datenbank bereinigt!");
     });
 }
 
+//*****************************************
+//Funktionen exportieren (->Public)
+//*****************************************
 module.exports = {
     init: init,
     query: query,

@@ -2,9 +2,7 @@
 /*jshint node: true */
 "use strict";
 
-var TCPserver = require('./TCP.js');
-const EventEmitter = require('events');
-
+const TCPserver = require('./TCP.js');
 
 module.exports = class TCPlogging extends TCPserver {
 
