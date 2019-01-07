@@ -33,9 +33,6 @@ module.exports = class communicationPLC extends EventEmitter {
         this.Production = new net(2501, host, ">>>Produktion Kommunikation<<<", this.productionReceive);
         this.SteinConveyor = new net(2503, host, ">>>Stein-Band Kommunikation<<<", this.steinReceive);
         this.Warehouse = new net(2504, host, ">>>Lager Kommunikation<<<", this.warehouseReceive);
-
-        this.PDUwhenConnected();
-        this.ADUwhenConnected();
     }
 
     //*****************************************
@@ -100,28 +97,10 @@ module.exports = class communicationPLC extends EventEmitter {
         return msg.data.substr(0, 3);
     }
 
-
     //*****************************************
     //Hilfsfunktionen
     //*****************************************
 
-    PDUwhenConnected() {
-        this.SteinConveyor.on("connection", () => {
-            this.PDU(this.SteinConveyor, "KOM");
-        });
-    }
-
-    ADUwhenConnected() {
-        this.FlexlinkBuffer.on("connection", () => {
-            this.ADU(this.FlexlinkBuffer, "PUF");
-        });
-        this.Production.on("connection", () => {
-            this.ADU(this.Production, "PRD");
-        });
-        this.SteinConveyor.on("connection", () => {
-            this.ADU(this.SteinConveyor, "KOM");
-        });
-    }
 
     TIUhandler() {
         this.TIUsend(this.FlexlinkBuffer, "PUF");
