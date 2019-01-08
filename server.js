@@ -7,7 +7,6 @@
 //*****************************************
 const express = require('express');
 const app = express();
-const io = require('socket.io')(server);
 const os = require('os');
 const bodyParser = require('body-parser');
 const fs = require("fs");
@@ -87,6 +86,7 @@ var PLCLog = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt"
 //*****************************************
 //Web-Socket Events
 //*****************************************
+const io = require('socket.io')(server);
 
 io.on('connection', function (socket) {
     nodeLogging.logger.INFO('Verbindung mit Client aufgebaut');
