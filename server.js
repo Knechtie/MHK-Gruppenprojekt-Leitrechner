@@ -30,7 +30,7 @@ var nodeLogging = new logger("/media/usb/Logging", "nodeJS.txt", logConfig.gener
 nodeLogging.logger.INFO("Logging in server.js ok");
 
 //Unterbrechungsfreie Spannungsversorgung:
-usv = new USV();
+usv = new USV(24);
 
 //Datenbank:
 db.init(() => {

@@ -13,9 +13,9 @@ nodeLogging.logger.INFO("Logging in usvSystemShutdown.js ok");
 
 module.exports = class USV {
 
-  constructor() {
+  constructor(pin) {
     try {
-      this.tPin = new Gpio(24, 'in', 'both', {
+      this.tPin = new Gpio(pin, 'in', 'both', {
         debounceTimeout: 10
       });
       this.shutdownHandler();
