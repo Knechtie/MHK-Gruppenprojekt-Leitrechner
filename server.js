@@ -87,7 +87,7 @@ var PLCLog = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt"
 //Web-Socket Events
 //*****************************************
 const io = require('socket.io')(server);
-
+let timeAlreadySet = false
 io.on('connection', function (socket) {
     nodeLogging.logger.INFO('Verbindung mit Client aufgebaut');
     db.queryProducts((productData) => {
@@ -100,27 +100,28 @@ io.on('connection', function (socket) {
 
     socket.on("dateTime", function (data) {
         //Zeitinformation von Client erhalten
+        if (!timeAlreadySet) {
+            var date = new Date(data);
 
-        var date = new Date(data);
+            var dateTime = {
+                dayOfMonth: date.getDate(),
+                month: date.getMonth() + 1,
+                year: date.getFullYear(),
+                hours: date.getHours(),
+                minutes: date.getMinutes(),
+                seconds: date.getSeconds()
+            };
 
-        var dateTime = {
-            dayOfMonth: date.getDate(),
-            month: date.getMonth() + 1,
-            year: date.getFullYear(),
-            hours: date.getHours(),
-            minutes: date.getMinutes(),
-            seconds: date.getSeconds()
-        };
+            nodeLogging.logger.DEBUG(dateTime);
 
-        nodeLogging.logger.DEBUG(dateTime);
-
-        //Systemzeit des Raspberry Pis aktualisieren
-        exec("sudo date --set '" + dateTime.year + "-" + dateTime.month + "-" + dateTime.dayOfMonth + " " + dateTime.hours + ":" + dateTime.minutes + ":" + dateTime.seconds + "'", (error, stdout, stderr) => {
-            if (error) {
-                nodeLogging.logger.ERROR(`exec error: ${error}`);
-                return;
-            }
-        });
+            //Systemzeit des Raspberry Pis aktualisieren
+            exec("sudo date --set '" + dateTime.year + "-" + dateTime.month + "-" + dateTime.dayOfMonth + " " + dateTime.hours + ":" + dateTime.minutes + ":" + dateTime.seconds + "'", (error, stdout, stderr) => {
+                if (error) {
+                    nodeLogging.logger.ERROR(`exec error: ${error}`);
+                    return;
+                }
+            });
+        }
     });
 
     socket.on('createProduct', function (msg) {
