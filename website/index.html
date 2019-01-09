@@ -65,9 +65,8 @@
         <div class="alert alert-danger mt-5" role="alert" hidden>
           Verbindung zum Server verloren!
         </div>
-        <h1 class="display-3 mt-5">Hallo, FST-AUP17!</h1>
+        <h1 class="display-3 mt-5">Herzlich Willkommen!</h1>
         <p>Der kürzeste Programmiererwitz: Gleich bin ich fertig!</p>
-        <p><a class="btn btn-primary btn-lg" id="blueButton" href="#" role="button">Drück mich! &raquo;</a></p>
       </div>
     </div>
     </script>
@@ -316,8 +315,6 @@
     $(document).ready(function () {
 
       socket.emit("dateTime", new Date());
-
-      $("#blueButton").click(() => {});
 
       $("#Testmodus").change(() => {
         if (document.getElementById("Testmodus").checked == true) {

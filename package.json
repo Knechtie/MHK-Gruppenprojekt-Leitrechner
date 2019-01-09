@@ -64,7 +64,7 @@
     "TCP",
     "usv"
   ],
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "main": "server.js",
   "name": "fstaup17-gruppenprojekt",
   "scripts": {
