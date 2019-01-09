@@ -21,6 +21,9 @@ const PLC = {
 
 const general = {
     format: printf(info => {
+        if (typeof info.message === "object"){
+            info.message = JSON.stringify(info.message)
+        } 
         return `${new Date().toLocaleString()} [${info.level}]:\t${info.message}`;
     })
 };
