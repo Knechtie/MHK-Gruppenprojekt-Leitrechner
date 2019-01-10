@@ -351,7 +351,7 @@ module.exports = class communicationPLC extends EventEmitter {
                 data.statusText = "Bearbeitung am HAP abgeschlossen => Qualitätskontrolle";
                 break;
             case 22:
-                data.statusText = "in Nachbearbeitung";
+                data.statusText = "In Nachbearbeitung";
                 break;
             case 30:
                 data.statusText = "Unterwegs zu Lager/Versand";
@@ -360,10 +360,10 @@ module.exports = class communicationPLC extends EventEmitter {
                 data.statusText = "Eingelagert";
                 break;
             case 50:
-                data.statusText = "wird versendet";
+                data.statusText = "Wird versendet";
                 break;
             case 60:
-                data.statusText = "versendet";
+                data.statusText = "Ist versendet";
                 break;
             case 99:
                 data.statusText = "Paket gelöscht";
