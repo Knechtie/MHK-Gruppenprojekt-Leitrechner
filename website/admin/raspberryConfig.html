@@ -14,8 +14,10 @@
     socket.removeAllListeners()
     $("#shutdown").click(function () {
         socket.emit('raspberryConfig', "shutdown")
+        alert("Leitrechner wird heruntergefahren!")
     })
     $("#reboot").click(function () {
         socket.emit('raspberryConfig', "reboot")
+        alert("Leitrechner wird neugestartet!")
     })
 </script>
