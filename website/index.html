@@ -69,8 +69,6 @@
         <p>Der kürzeste Programmiererwitz: Gleich bin ich fertig!</p>
       </div>
     </div>
-    </script>
-
 
     <div id="target">Loading...</div>
 
@@ -335,12 +333,12 @@
       } else {
         socket.emit("sendOrder", data)
         //Hier wird reagiert, ob testmodus aktiv oder normaler modus mit weiterleitung zur Bestellbestätigung
+        alert("Bestellung wurde übermittelt!")
         if (document.getElementById("Testmodus").checked == true) {
           console.log("testmodus aktiv");
           socket.emit("testmodus")
         } else {
           console.log("normaler Modus");
-          alert("Bestellung wurde übermittelt!")
         }
       }
     }
