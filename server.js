@@ -84,6 +84,26 @@ var PLCLog = new PLCLogging(raspberryIP, "/media/usb/Logging", "PLC-Logging.txt"
 
 
 //*****************************************
+//Route für Anfrage des Giveawaybilds
+//*****************************************
+const giveawayRoute = "/admin/giveawayPictures"
+app.get(giveawayRoute + '/:shelfID', function (request, response, next) {
+    let shelfID = request.params.shelfID;
+    db.getGiveawayFilePath(shelfID, raspberryIP, webserverPort, (filePath) => {
+        const pictureHeight = 300
+        const winCCBrowserHeight = 660
+        const winCCBackgroundHTMLColor = "#C0C0C0"
+        response.send(`
+        <html>
+          <body style="background-color:${winCCBackgroundHTMLColor}; overflow: hidden;">
+            <center>
+              <img style="height: ${pictureHeight}px; width: auto; margin-top: ${Math.round((winCCBrowserHeight-pictureHeight)/2)}" src="${filePath}">
+            </center>
+          </body>
+        </html>`)
+    })
+});
+//*****************************************
 //Web-Socket Events
 //*****************************************
 const io = require('socket.io')(server);
@@ -157,7 +177,7 @@ io.on('connection', function (socket) {
                 });
             },
             function (callback) {
-                db.createGiveaway(msg.giveawayShelfID, msg.name, msg.weight, msg.relativeFilePath, (err) => {
+                db.createGiveaway(msg.giveawayShelfID, msg.name, msg.weight, giveawayRoute, msg.relativeFilePath, (err) => {
                     if (err != undefined) {}
                     callback();
                 });
@@ -260,8 +280,8 @@ function emitloadOrdersAdmin() {
 function emitloadGiveawaysAdmin() {
     db.queryGiveaways((data) => {
         data.forEach(element => {
-            element.pictureURL = element.pictureURL.replace("IP", raspberryIP);
-            element.pictureURL = element.pictureURL.replace("PORT", webserverPort);
+            element.filePath = element.filePath.replace("IP", raspberryIP);
+            element.filePath = element.filePath.replace("PORT", webserverPort);
         });
         io.emit('loadGiveawaysAdmin', data);
     });
