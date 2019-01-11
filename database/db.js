@@ -57,12 +57,14 @@ function query(text, params, callback) {
     return pool.query(text, params, (err, res) => {
         const duration = Date.now() - start;
         counter += 1;
-        nodeLogging.logger.DEBUG('executed query', {
-            text,
-            duration /*, rows: res.rowCount */ ,
-            params,
-            counter
-        });
+        let rowCount;
+        try {
+            rowCount = res.rowCount
+        } catch (error) {
+            rowCount = 0;
+        }
+        nodeLogging.logger.DEBUG(`Ausgeführte Datenbankabfrage: \n\t${text}\n\tParameter: \t\t${params}\n\tDauer: \t\t\t${duration} ms\n\tAnz. Ergebnisse: \t${rowCount}\n\tZähler: \t\t${counter}`)
+
         if (typeof callback === 'function') {
             callback(err, res);
         }
