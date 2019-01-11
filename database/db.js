@@ -97,7 +97,7 @@ const queries = {
     tableCustomers: 'CREATE TABLE "Customers" ("customerID" SERIAL PRIMARY KEY, "firstName" TEXT, "lastName" TEXT, "streetAndNumber" TEXT, "postalCode" TEXT, city TEXT, "totalMoneySpent" money)',
     tableProducts: 'CREATE TABLE "Products" ("productID" SERIAL PRIMARY KEY, "productName" TEXT,description TEXT, deprecated bool, size integer, "drillParameters" boolean[], weight integer, "weightTolerance" integer,"countOnStock" integer, price money, "totalOrdered" integer)',
     tableOrders: 'CREATE TABLE "Orders" ("orderID" SERIAL PRIMARY KEY, "customerID" integer REFERENCES "Customers" ON DELETE CASCADE, "finalPrice" money, "orderDate" timestamp without time zone,"deliveryDate" timestamp without time zone)',
-    tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, weight integer, "weightTolerance" integer)',
+    tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, "filePath" text, weight integer, "weightTolerance" integer)',
     tablePackages: 'CREATE TABLE "Packages" ("orderID" integer REFERENCES "Orders" ON DELETE CASCADE, "packageNr" integer , "totalNumberOfPackages" integer, "totalWeight" integer,  "totalWeightTolerance" integer, "giveawayShelfID" integer REFERENCES "Giveaways", PRIMARY KEY ("orderID", "packageNr"))',
     tableOrderItems: 'CREATE TABLE "OrderItems" ("orderID" integer, "packageNr" integer, "productID" integer,    Foreign key ("orderID","packageNr") references "Packages"("orderID","packageNr") on delete cascade)',
     tablePackagesProductionStatus: 'CREATE TABLE "PackagesProductionStatus" ("orderID" integer, "packageNr" integer, "statusText" TEXT, "statusCode" integer, "lastUpdate" timestamp without time zone, FOREIGN KEY ("orderID", "packageNr") References "Packages" ("orderID", "packageNr") on delete cascade, PRIMARY KEY ("orderID", "packageNr"))',
@@ -556,7 +556,7 @@ function queryOrder(orderID, callback) {
 }
 
 function queryGiveaways(callback) {
-    query('SELECT "giveawayShelfID","name","weight", "pictureURL" FROM "Giveaways" ORDER BY "giveawayShelfID" ASC', (err, res) => {
+    query('SELECT "giveawayShelfID","name","weight", "filePath" FROM "Giveaways" ORDER BY "giveawayShelfID" ASC', (err, res) => {
         if (err) {
             nodeLogging.logger.ERROR(err.stack);
             callback();
@@ -588,9 +588,9 @@ function createProduct(name, description, size, drillParameters, weight, price, 
     });
 }
 
-function createGiveaway(giveawayShelfID, name, weight, relativeFilePath, callback) {
-    var text = `INSERT INTO "Giveaways" ("giveawayShelfID", name, weight, "pictureURL") VALUES($1, $2, $3, $4)`;
-    var values = [giveawayShelfID, name, weight, "http://IP:PORT/" + relativeFilePath];
+function createGiveaway(giveawayShelfID, name, weight, route, relativeFilePath, callback) {
+    var text = `INSERT INTO "Giveaways" ("giveawayShelfID", name, weight, "pictureURL", "filePath") VALUES($1, $2, $3, $4, $5)`;
+    var values = [giveawayShelfID, name, weight, `http://IP:PORT${route}/${giveawayShelfID}`, `http://IP:PORT/${relativeFilePath}`];
 
     query(text, values, (err, res) => {
         if (err) {
@@ -638,6 +638,28 @@ function editGiveaway(giveawayShelfID, deleteGiveaway, callback) {
             callback();
         });
     }
+}
+
+function getGiveawayFilePath(giveawayShelfID, host, webserverPort, callback) {
+    const text = 'SELECT "filePath" FROM "Giveaways" WHERE "giveawayShelfID"=$1';
+    const values = [giveawayShelfID];
+    query(text, values, (err, res) => {
+        if (err) {
+            nodeLogging.logger.ERROR(err.stack);
+        }
+        let filePath
+        try {
+            nodeLogging.logger.DEBUG(res.rows);
+            res.rows.forEach(element => {
+                element.filePath = element.filePath.replace("IP", host);
+                element.filePath = element.filePath.replace("PORT", webserverPort);
+            });
+            filePath = res.rows[0].filePath
+        } catch (error) {
+            nodeLogging.logger.ERROR(`Keine Datei für Promotionsartikelfach ${giveawayShelfID}`);
+        }
+        callback(filePath)
+    });
 }
 
 function deleteOrder(orderID, callback) {
@@ -756,5 +778,6 @@ module.exports = {
     queryStats: queryStats,
     deleteOrder: deleteOrder,
     deleteAllOrders: deleteAllOrders,
-    automaticDBCleanup: automaticDBCleanup
+    automaticDBCleanup: automaticDBCleanup,
+    getGiveawayFilePath: getGiveawayFilePath
 };
