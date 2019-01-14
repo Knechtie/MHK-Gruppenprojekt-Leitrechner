@@ -41,7 +41,7 @@ module.exports = class TCPserver extends net.Server {
             nodeLogging.logger.INFO(`TCP-Server ${this.symbolicName} gestartet (${super.address().family}: ${super.address().address} Port: ${super.address().port})`);
             super.maxConnections = 1;
             super.on("connection", (socket) => {
-                nodeLogging.logger.INFO(`\n############--Client Verbunden mit TCP-Server ${this.symbolicName} ${this.host}:${this.port}--############\nAdresse Client: ${socket.remoteAddress}:${socket.remotePort}\n#########################################################################################################`);
+                nodeLogging.logger.INFO(`#######-- Client Verbunden mit TCP-Server ${this.symbolicName} ${this.host}:${this.port} | Client: ${socket.remoteAddress}:${socket.remotePort} --#######`);
                 this.lastSocket = socket;
                 this.clientConnected = true;
             });
@@ -123,13 +123,13 @@ module.exports = class TCPserver extends net.Server {
                 //DEBUGrmationen aus dem Kopf extrahieren
                 var Message = this.parseHeadReceive();
 
-                nodeLogging.logger.DEBUG("Länge Kopf + Nutzdaten: " + (this.headByteLength + Message.head.dataLength));
+                //nodeLogging.logger.DEBUG("Länge Kopf + Nutzdaten: " + (this.headByteLength + Message.head.dataLength));
 
                 //Prüfen ob genug potenzielle Nutzdaten verfügbar sind
                 if (this.msgBuffer.length >= this.headByteLength + Message.head.dataLength) {
                     var nextMsgAt = this.msgBuffer.indexOf("#", 2); //Noch ein weiteres Telegramm da? (Nein -> Wert -1) (Es wird erst ab index 2 gesucht)
 
-                    nodeLogging.logger.DEBUG("Nächste Nachricht an Stelle: " + (nextMsgAt + 1));
+                    //nodeLogging.logger.DEBUG("Nächste Nachricht an Stelle: " + (nextMsgAt + 1));
 
                     if (nextMsgAt == -1) {
                         nodeLogging.logger.DEBUG("+++++Telegramm OK KEINES folgt++++++");
@@ -137,12 +137,12 @@ module.exports = class TCPserver extends net.Server {
                         this.emit('newData', Message);
                         this.msgBuffer = "";
                     } else if (nextMsgAt + 1 > this.headByteLength + Message.head.dataLength) {
-                        nodeLogging.logger.DEBUG("+++++Telegramm OK aber eins folgt++++++");
+                        nodeLogging.logger.DEBUG("+++++Telegramm OK aber min. eins folgt++++++");
                         Message.data = this.msgBuffer.substr(this.headByteLength, Message.head.dataLength);
                         this.emit('newData', Message);
                         //nodeLogging.logger.DEBUG(this.msgBuffer);
                         this.msgBuffer = this.msgBuffer.slice(this.headByteLength + Message.head.dataLength);
-                        nodeLogging.logger.DEBUG("------!!Rekursiver aufruf von parseData()!!-----");
+                        //nodeLogging.logger.DEBUG("------!!Rekursiver aufruf von parseData()!!-----");
                         this.parseData("");
                     } else if (nextMsgAt + 1 <= this.headByteLength + Message.head.dataLength) {
                         //zwischendrin taucht ein Telegram auf-> Telegramm verwerfen durch löschen von ## und rekusivem Aufruf dieser Funktion (löscht dann Datenmüll)
