@@ -70,7 +70,7 @@ module.exports = class TCPserver extends net.Server {
 
         this.server.getConnections((err, count) => {
             if (count == 1) {
-                nodeLogging.logger.DEBUG(resultData);
+                nodeLogging.logger.DEBUG("Telegramm senden: " + resultData);
                 this.lastSocket.write(resultData,encoding, callback);
                 this.messageCounter += 1;
             } else {
@@ -140,9 +140,8 @@ module.exports = class TCPserver extends net.Server {
                         nodeLogging.logger.DEBUG("+++++Telegramm OK aber eins folgt++++++");
                         Message.data = this.msgBuffer.substr(this.headByteLength, Message.head.dataLength);
                         this.emit('newData', Message);
-                        nodeLogging.logger.DEBUG(this.msgBuffer);
+                        //nodeLogging.logger.DEBUG(this.msgBuffer);
                         this.msgBuffer = this.msgBuffer.slice(this.headByteLength + Message.head.dataLength);
-                        nodeLogging.logger.DEBUG(this.msgBuffer);
                         nodeLogging.logger.DEBUG("------!!Rekursiver aufruf von parseData()!!-----");
                         this.parseData("");
                     } else if (nextMsgAt + 1 <= this.headByteLength + Message.head.dataLength) {
