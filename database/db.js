@@ -95,9 +95,9 @@ const pool = new Pool({
 const queries = {
     alterDatabase: `alter DATABASE "mhkDatabase" SET lc_monetary = "de_DE@euro"`,
     tableCustomers: 'CREATE TABLE "Customers" ("customerID" SERIAL PRIMARY KEY, "firstName" TEXT, "lastName" TEXT, "streetAndNumber" TEXT, "postalCode" TEXT, city TEXT, "totalMoneySpent" money)',
-    tableProducts: 'CREATE TABLE "Products" ("productID" SERIAL PRIMARY KEY, "productName" TEXT,description TEXT, deprecated bool, size integer, "drillParameters" boolean[], weight integer, "weightTolerance" integer,"countOnStock" integer, price money, "totalOrdered" integer)',
+    tableProducts: 'CREATE TABLE "Products" ("productID" SERIAL PRIMARY KEY, "productName" TEXT,description TEXT, deprecated bool, size integer, "drillParameters" boolean[], weight real, "weightTolerance" integer,"countOnStock" integer, price money, "totalOrdered" integer)',
     tableOrders: 'CREATE TABLE "Orders" ("orderID" SERIAL PRIMARY KEY, "customerID" integer REFERENCES "Customers" ON DELETE CASCADE, "finalPrice" money, "orderDate" timestamp without time zone,"deliveryDate" timestamp without time zone)',
-    tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, "filePath" text, weight integer, "weightTolerance" integer)',
+    tableGiveaways: 'CREATE TABLE "Giveaways" ("giveawayShelfID" SERIAL PRIMARY KEY , name TEXT, "pictureURL" text, "filePath" text, weight real, "weightTolerance" integer)',
     tablePackages: 'CREATE TABLE "Packages" ("orderID" integer REFERENCES "Orders" ON DELETE CASCADE, "packageNr" integer , "totalNumberOfPackages" integer, "totalWeight" integer,  "totalWeightTolerance" integer, "giveawayShelfID" integer REFERENCES "Giveaways", PRIMARY KEY ("orderID", "packageNr"))',
     tableOrderItems: 'CREATE TABLE "OrderItems" ("orderID" integer, "packageNr" integer, "productID" integer,    Foreign key ("orderID","packageNr") references "Packages"("orderID","packageNr") on delete cascade)',
     tablePackagesProductionStatus: 'CREATE TABLE "PackagesProductionStatus" ("orderID" integer, "packageNr" integer, "statusText" TEXT, "statusCode" integer, "lastUpdate" timestamp without time zone, FOREIGN KEY ("orderID", "packageNr") References "Packages" ("orderID", "packageNr") on delete cascade, PRIMARY KEY ("orderID", "packageNr"))',
@@ -141,9 +141,9 @@ function init(callback) {
 
 function newSampleProducts() {
     const products = {
-        1: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 1', 'Beschreibung 1', '1', ARRAY[true, false, false, false, false] , 10, '100', '100',0)`,
-        2: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 2', 'Beschreibung 2', '2', '{false, true, false, false, false}', 20, '200', '200',0)`,
-        3: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 3', 'Beschreibung 3', '1', '{false, false, true, false, false}', 30, '300', '300',0)`,
+        1: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 1', 'Beschreibung 1', '1', ARRAY[true, false, false, false, false] , 10, '100.1', '100',0)`,
+        2: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 2', 'Beschreibung 2', '2', '{false, true, false, false, false}', 20, '200.2', '200',0)`,
+        3: `INSERT INTO "Products" ("productName",description, size, "drillParameters", price, "weight", "countOnStock", "totalOrdered") VALUES('Spiel 3', 'Beschreibung 3', '1', '{false, false, true, false, false}', 30, '300.3', '300',0)`,
     };
     async.eachOfSeries(products, function (value, key, callback) {
         nodeLogging.logger.DEBUG(key);
@@ -339,7 +339,7 @@ function createPackages(Order, callback) {
     const maxItemQuantity = 6;
     var packageNr = 1;
     var itemsInPackage = 0;
-    var totalWeight = 0;
+    var totalWeight = 0.0;
     var giveawayShelfID;
 
     async.forEachOfSeries(Order.items, function (product, key, callback) {
@@ -362,8 +362,9 @@ function createPackages(Order, callback) {
                     function (callback) {
                         nodeLogging.logger.DEBUG("Paketnummer: " + packageNr);
                         if (packageNr == 1) {
-                            chooseGiveaway((shelfID) => {
+                            chooseGiveaway((shelfID, weight) => {
                                 giveawayShelfID = shelfID;
+                                totalWeight += weight;
                                 callback();
                             });
                         } else {
@@ -377,14 +378,14 @@ function createPackages(Order, callback) {
 
                         if (itemsInPackage >= maxItemQuantity) {
                             const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
-                            const packageValues = [totalWeight, Order.orderID, packageNr];
+                            const packageValues = [Math.round(totalWeight), Order.orderID, packageNr];
                             query(packageQuery, packageValues, (err, res) => {
                                 if (err) {
                                     nodeLogging.logger.ERROR(err.stack);
                                 }
                                 packageNr += 1;
                                 itemsInPackage = 0;
-                                totalWeight = 0;
+                                totalWeight = 0.0;
                                 callback();
                             });
                         } else {
@@ -455,13 +456,13 @@ function createPackages(Order, callback) {
             },
             function (callback) {
                 const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
-                const packageValues = [totalWeight, Order.orderID, packageNr];
+                const packageValues = [Math.round(totalWeight), Order.orderID, packageNr];
                 query(packageQuery, packageValues, (err, res) => {
                     if (err) {
                         nodeLogging.logger.ERROR(err.stack);
                     }
                     itemsInPackage = 0;
-                    totalWeight = 0;
+                    totalWeight = 0.0;
                     callback();
                 });
             },
@@ -499,7 +500,7 @@ function incStatTotalOrdered(productID) {
 
 function chooseGiveaway(callback) {
     const queryParam = {
-        text: 'SELECT "giveawayShelfID" FROM "Giveaways"',
+        text: 'SELECT "giveawayShelfID", weight FROM "Giveaways"',
         values: [],
         rowMode: 'array',
     };
@@ -507,15 +508,16 @@ function chooseGiveaway(callback) {
         if (err) {
             nodeLogging.logger.ERROR(err.stack);
         }
-        var IDs = res.rows;
-        nodeLogging.logger.DEBUG("------IDs: " + IDs);
-        if (IDs.length > 0) {
-            var randomShelfID = IDs[Math.floor(Math.random() * IDs.length)][0];
-            nodeLogging.logger.DEBUG("random: " + randomShelfID);
-            callback(randomShelfID);
+
+        if (res.rows.length > 0) {
+            var randomShelfID = res.rows[Math.floor(Math.random() * res.rows.length)][0];
+            var weight = res.rows[randomShelfID - 1][1]
+            nodeLogging.logger.DEBUG("Zufälliges Promotionsartikelfach: " + randomShelfID);
+            nodeLogging.logger.DEBUG("Gewicht des Promotionsartikels: " + weight);
+            callback(randomShelfID, weight);
         } else {
             //Keine Promotionsartikel definiert
-            callback();
+            callback(undefined, 0);
         }
     });
 }
@@ -577,7 +579,7 @@ function queryStats(callback) {
 
 function createProduct(name, description, size, drillParameters, weight, price, countOnStock, callback) {
     var text = `INSERT INTO "Products" ("productName", description, size, "drillParameters", weight, price, "countOnStock", "totalOrdered") VALUES($1, $2, $3, $4, $5, $6, $7, $8)`;
-    var values = [name, description, size, drillParameters, weight, price, countOnStock, 0];
+    var values = [name, description, size, drillParameters, parseFloat(weight.replace(",",".")), price, countOnStock, 0];
 
     query(text, values, (err, res) => {
         if (err) {
@@ -590,7 +592,7 @@ function createProduct(name, description, size, drillParameters, weight, price, 
 
 function createGiveaway(giveawayShelfID, name, weight, route, relativeFilePath, callback) {
     var text = `INSERT INTO "Giveaways" ("giveawayShelfID", name, weight, "pictureURL", "filePath") VALUES($1, $2, $3, $4, $5)`;
-    var values = [giveawayShelfID, name, weight, `http://IP:PORT${route}/${giveawayShelfID}`, `http://IP:PORT/${relativeFilePath}`];
+    var values = [giveawayShelfID, name, parseFloat(weight.replace(",",".")), `http://IP:PORT${route}/${giveawayShelfID}`, `http://IP:PORT/${relativeFilePath}`];
 
     query(text, values, (err, res) => {
         if (err) {
