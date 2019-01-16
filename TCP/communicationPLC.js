@@ -257,7 +257,7 @@ module.exports = class communicationPLC extends EventEmitter {
                     city: element.city.toString().padEnd(50, " "),
                     itemData: "",
                     giveawayShelfID: "",
-                    totalWeight: element.totalWeight.toString().padEnd(4, "0")
+                    totalWeight: element.totalWeight.toString().padStart(4, "0")
                 };
                 try {
                     data.giveawayShelfID = element.giveawayShelfID.toString().padStart(1, "0");
