@@ -185,31 +185,20 @@
 
 
 
-<h4>Produkt bearbeiten</h4>
+<h4>Produkt abkündigen</h4>
 
 <div class="alert alert-secondary" role="alert" id="messageBoxEdit">
-    <p><u>Regeln:</u></p>
-    <li>Artikel können nur gelöscht werden, wenn der Artikel nicht auf Lager ist.</li>
+    <p>Wenn ein Produkt abgekündigt ist, wird es bei erreichen der Stückzahl 0 automatisch beim nächsten Start des Leitrechners gelöscht.</p>
 </div>
 <form class="needs-validation mb-3" novalidate>
     <div class="col-md-12 mb-3">
         <label>Produkt ID</label>
         <input type="text" class="form-control" id="productID" placeholder="Produkt ID" required>
         <div class="invalid-feedback">
-            Bitte Name eingeben.
+            Produkt ID eingeben.
         </div>
     </div>
-    <div class="col-md-12 mb-3">
-        <label>Aktion</label>
-        <select class="custom-select form-control" id="selectedOption" required>
-            <option selected value="0">Aktion wählen</option>
-            <option value="1">Abkündigen</option>
-            <option value="2">Löschen</option>
-        </select>
-        <div class="invalid-feedback">
-            Bitte Option auswählen.
-        </div>
-    </div>
+
     <div class="col">
         <button id="editProductButton" type="submit" href="#" class="btn btn-outline-success">Bestätigen</button>
     </div>
@@ -302,45 +291,15 @@
         } else {
             document.getElementById("productID").className = "form-control is-valid";
         }
-        if ($('#selectedOption').val() == 0) {
-            document.getElementById("selectedOption").className = "custom-select form-control is-invalid";
-            abort = true
-        } else {
-            document.getElementById("selectedOption").className = "custom-select form-control is-valid";
-        }
         if (abort) {
             return
         }
 
         var editProduct = {
             productID: $('#productID').val(),
-            deprecated: false,
-            delete: false,
         }
-
-        if ((parseInt($(`#countOnStock${editProduct.productID}`).html()) != 0) && $('#selectedOption').val() ==
-            2) {
-            document.getElementById("messageBoxEdit").className = "alert alert-danger";
-            return
-        } else {
-            document.getElementById("messageBoxEdit").className = "alert alert-secondary";
-        }
-
-        switch ($('#selectedOption').val()) {
-            case "1":
-                editProduct.deprecated = true;
-                editProduct.delete = false;
-                break;
-            case "2":
-                console.log("joooo")
-                editProduct.deprecated = false;
-                editProduct.delete = true;
-                break;
-            default:
-                break;
-        }
-        console.log($('#selectedOption').val())
+       
         socket.emit('editProduct', editProduct);
-        alert("Artikel wird bearbeitet...")
+        alert(`Artikel ${$('#productID').val()} wird abgekündigt...`)
     })
 </script>
