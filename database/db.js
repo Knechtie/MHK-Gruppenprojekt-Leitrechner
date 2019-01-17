@@ -341,9 +341,10 @@ function createPackages(Order, callback) {
     var itemsInPackage = 0;
     var totalWeight = 0.0;
     var giveawayShelfID;
+    var giveawayAlreadySet = false
 
     async.forEachOfSeries(Order.items, function (product, key, callback) {
-
+        //Für jede Produkt ID einer Bestellung durchlaufen
         nodeLogging.logger.DEBUG(product);
         nodeLogging.logger.DEBUG("----------------");
 
@@ -358,11 +359,14 @@ function createPackages(Order, callback) {
             nodeLogging.logger.DEBUG(`Weight of productID ${product.productID} is ${itemWeight} g`);
 
             async.timesSeries(product.count, function (n, next) {
+                //Anzahl der Stückzahl durchlaufen
+
                 async.series([
                     function (callback) {
                         nodeLogging.logger.DEBUG("Paketnummer: " + packageNr);
-                        if (packageNr == 1) {
+                        if (packageNr == 1 && !giveawayAlreadySet) {
                             chooseGiveaway((shelfID, weight) => {
+                                giveawayAlreadySet = true;
                                 giveawayShelfID = shelfID;
                                 totalWeight += weight;
                                 callback();
@@ -444,17 +448,6 @@ function createPackages(Order, callback) {
         async.series([
             function (callback) {
                 nodeLogging.logger.DEBUG("Paketnummer: " + packageNr);
-                if (packageNr == 1) {
-                    chooseGiveaway((shelfID) => {
-                        giveawayShelfID = shelfID;
-                        callback();
-                    });
-                } else {
-                    giveawayShelfID = undefined;
-                    callback();
-                }
-            },
-            function (callback) {
                 const packageQuery = 'UPDATE "Packages" SET "totalWeight"=$1 WHERE "orderID"=$2 AND "packageNr"=$3';
                 const packageValues = [Math.round(totalWeight), Order.orderID, packageNr];
                 query(packageQuery, packageValues, (err, res) => {
