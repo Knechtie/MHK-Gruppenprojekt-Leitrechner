@@ -572,7 +572,7 @@ function queryStats(callback) {
 
 function createProduct(name, description, size, drillParameters, weight, price, countOnStock, callback) {
     var text = `INSERT INTO "Products" ("productName", description, size, "drillParameters", weight, price, "countOnStock", "totalOrdered") VALUES($1, $2, $3, $4, $5, $6, $7, $8)`;
-    var values = [name, description, size, drillParameters, parseFloat(weight.replace(",",".")), price, countOnStock, 0];
+    var values = [name, description, size, drillParameters, parseFloat(weight.replace(",", ".")), price, countOnStock, 0];
 
     query(text, values, (err, res) => {
         if (err) {
@@ -585,7 +585,7 @@ function createProduct(name, description, size, drillParameters, weight, price, 
 
 function createGiveaway(giveawayShelfID, name, weight, route, relativeFilePath, callback) {
     var text = `INSERT INTO "Giveaways" ("giveawayShelfID", name, weight, "pictureURL", "filePath") VALUES($1, $2, $3, $4, $5)`;
-    var values = [giveawayShelfID, name, parseFloat(weight.replace(",",".")), `http://IP:PORT${route}/${giveawayShelfID}`, `http://IP:PORT/${relativeFilePath}`];
+    var values = [giveawayShelfID, name, parseFloat(weight.replace(",", ".")), `http://IP:PORT${route}/${giveawayShelfID}`, `http://IP:PORT/${relativeFilePath}`];
 
     query(text, values, (err, res) => {
         if (err) {
@@ -745,7 +745,28 @@ function automaticDBCleanup() {
             }, function () {
                 callback();
             });
-        }
+        },
+        function (callback) {
+            query(`SELECT "productID" FROM "Products" WHERE "deprecated"=TRUE AND "countOnStock"=0`, [], (err, res) => {
+                if (err) {
+                    nodeLogging.logger.ERROR(err.stack);
+                    callback(err);
+                }
+                nodeLogging.logger.DEBUG(res.rows);
+                async.forEachOfSeries(res.rows, (data, i ,callback) => {
+                    editProduct(data.productID, false, true, () => {
+                        callback()
+                    })
+                }, function (err) {
+                    if (err) {
+                        nodeLogging.logger.ERROR(err.stack);
+                        callback(err);
+                    } else {
+                        callback();
+                    }
+                })
+            });
+        },
     ], function (err, result) {
         nodeLogging.logger.INFO("Datenbank bereinigt!");
     });

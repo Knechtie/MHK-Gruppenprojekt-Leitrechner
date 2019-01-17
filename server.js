@@ -153,11 +153,10 @@ io.on('connection', function (socket) {
     });
     socket.on('editProduct', function (msg) {
         nodeLogging.logger.DEBUG(msg);
-        db.editProduct(msg.productID, msg.deprecated, msg.delete, () => {
+        db.editProduct(msg.productID, true, false, () => {
             emitloadProductsAdmin();
             communicationPLC.sendItemDataToPLC();
         });
-
     });
     socket.on('getProductsAdmin', function (msg) {
         nodeLogging.logger.DEBUG("Produkte auf Adminseite laden...");
