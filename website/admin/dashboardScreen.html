@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding-top: 10px;
+            padding-left: 50px;
+            padding-right: 50px;
+
+            height: 100%;
+            width: 100%;
+        }
+
+        #full-size {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            /* or overflow:auto; if you want scrollbars */
+        }
+    </style>
+
+
+    <!-- mustache Vorlagen -->
+    <link href="css/dashboard.css" rel="stylesheet">
+    <!-- Bootstrap core CSS -->
+    <link href="/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+
+<body id="full-size">
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    <script>
+        window.jQuery || document.write('<script src="../../assets/js/vendor/jquery-slim.min.js"><\/script>')
+    </script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <!-- Geduldspiel zeichnen-->
+    <script src="/node_modules/two.js/build/two.min.js"></script>
+    <script src="../drawProduct.js"></script>
+    <!-- Websocket -->
+
+    <script src="/node_modules/socket.io-client/dist/socket.io.js"></script>
+    <script>var socket = io();</script>
+
+
+    <h4>Verkaufte Spiele</h4>
+    <canvas class="my-4 w-100" id="myChart" style="height:40%;"></canvas>
+
+    <h4>Anlagenzustand</h4>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 45%">Anlagenteil</th>
+                    <th scope="col" style="width: 40%">Betriebsart</th>
+                    <th scope="col" style="width: 30%">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="PRD">
+                    <th scope="row">Produktion</th>
+                    <td>
+                        <div id="PRDbetriebsart">test</div>
+                    </td>
+                    <td>
+                        <div id="PRDstatus">test</div>
+                    </td>
+                </tr>
+                <tr id="PUF">
+                    <th scope="row">Puffer</th>
+                    <td>
+                        <div id="PUFbetriebsart">test</div>
+                    </td>
+                    <td>
+                        <div id="PUFstatus">test</div>
+                    </td>
+                </tr>
+                <tr id="KOM">
+                    <th scope="row">Kommissionierung</th>
+                    <td>
+                        <div id="KOMbetriebsart">test</div>
+                    </td>
+                    <td>
+                        <div id="KOMstatus">test</div>
+                    </td>
+                </tr>
+                <tr id="LAG">
+                    <th scope="row">Lager</th>
+                    <td>
+                        <div id="LAGbetriebsart">test</div>
+                    </td>
+                    <td>
+                        <div id="LAGstatus">test</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Graphs -->
+    <script src="/node_modules/chart.js/dist/Chart.min.js"></script>
+    <script>
+
+    </script>
+
+
+    <script>
+        $(document).ready(function () {
+
+            const data = {
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        "rgba(255, 99, 132, 0.5)",
+                        "rgba(75, 192, 192, 0.5)",
+                        "rgba(255, 205, 86, 0.5)",
+                        "rgba(201, 203, 207, 0.5)",
+                        "rgba(54, 162, 235, 0.5)",
+                        "rgba(40, 99, 132, 0.5)",
+                        "rgba(75, 57, 192, 0.5)",
+                        "rgba(255, 24, 86, 0.5)",
+                        "rgba(79, 203, 107, 0.5)",
+                        "rgba(54, 162, 75, 0.5)"
+                    ],
+                    borderColor: [
+                        "rgba(255, 99, 132, 0.5)",
+                        "rgba(75, 192, 192, 0.5)",
+                        "rgba(255, 205, 86, 0.5)",
+                        "rgba(201, 203, 207, 0.5)",
+                        "rgba(54, 162, 235, 0.5)",
+                        "rgba(40, 99, 132, 0.5)",
+                        "rgba(75, 57, 192, 0.5)",
+                        "rgba(255, 24, 86, 0.5)",
+                        "rgba(79, 203, 107, 0.5)",
+                        "rgba(54, 162, 75, 0.5)"
+                    ]
+                }],
+                // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: []
+            };
+            socket.removeAllListeners()
+
+
+            socket.emit('dashboardData');
+            socket.on('loadDashboardChart', function (res) {
+                console.log(res)
+
+                removeData(data)
+
+                res.forEach((element, i) => {
+                    addData(myChart, element.productName, element.totalOrdered)
+                });
+                myChart.update()
+            })
+            console.log(data)
+
+            function addData(chart, label, data) {
+                chart.data.labels.push(label);
+                chart.data.datasets.forEach((dataset) => {
+                    dataset.data.push(data);
+                });
+            }
+
+            function removeData(data) {
+                data.labels = []
+                data.datasets.forEach((dataset) => {
+                    dataset.data = []
+                });
+            }
+
+            var ctx = document.getElementById("myChart");
+            var myChart = new Chart(ctx, {
+                data: data,
+                type: 'polarArea',
+            });
+
+
+            socket.on("loadSystemStatus", function (data) {
+                console.log(data)
+                Object.keys(data).forEach(Objkey => {
+                    document.getElementById(`${Objkey}betriebsart`).innerHTML = data[Objkey].operatingMode
+                    document.getElementById(`${Objkey}status`).innerHTML = data[Objkey].status
+                    switch (data[Objkey].status) {
+                        case 'Warnung':
+                            document.getElementById(Objkey).className = 'table-warning'
+                            break;
+                        case 'Gestört':
+                            document.getElementById(Objkey).className = 'table-danger'
+                            break;
+                        default:
+                            document.getElementById(Objkey).className = ''
+                            break;
+                    }
+                });
+
+            })
+        })
+
+    </script>
+</body>
