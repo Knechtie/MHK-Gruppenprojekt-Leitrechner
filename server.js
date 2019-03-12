@@ -285,11 +285,15 @@ function emitloadGiveawaysAdmin() {
         io.emit('loadGiveawaysAdmin', data);
     });
 }
+communicationPLC.on('STI', function(data){
+    io.emit("loadSystemStatus", data)
+})
 
 function emitloadDashboardData() {
     db.queryStats((data) => {
-        io.emit("loadDashboardData", data);
+        io.emit("loadDashboardChart", data);
     });
+    io.emit("loadSystemStatus", communicationPLC.systemInfo);
 }
 db.eventEmitter.on('stockChanged', () => {
     refreshStock();

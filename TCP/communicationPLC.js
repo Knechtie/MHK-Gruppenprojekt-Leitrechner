@@ -33,6 +33,13 @@ module.exports = class communicationPLC extends EventEmitter {
         this.Production = new net(2501, host, ">>>Produktion Kommunikation<<<", this.productionReceive);
         this.SteinConveyor = new net(2503, host, ">>>Stein-Band Kommunikation<<<", this.steinReceive);
         this.Warehouse = new net(2504, host, ">>>Lager Kommunikation<<<", this.warehouseReceive);
+
+        this.systemInfo = {
+            PRD: {operatingMode: undefined, status: undefined},
+            PUF: {operatingMode: undefined, status: undefined},
+            KOM: {operatingMode: undefined, status: undefined},
+            LAG: {operatingMode: undefined, status: undefined},
+        }
     }
 
     //*****************************************
@@ -45,6 +52,9 @@ module.exports = class communicationPLC extends EventEmitter {
             case "ADR":
                 this.ADU(this.FlexlinkBuffer, "PUF");
                 break;
+            case "STI":
+                this.STIhandler(msg)
+                break;
             default:
                 break;
         }
@@ -54,6 +64,9 @@ module.exports = class communicationPLC extends EventEmitter {
         switch (this.msgType) {
             case "ADR": //Article data request: Anfrage der Artikelproduktionsdaten
                 this.ADU(this.Production, "PRD");
+                break;
+            case "STI":
+                this.STIhandler(msg)
                 break;
             default:
                 break;
@@ -74,6 +87,9 @@ module.exports = class communicationPLC extends EventEmitter {
             case "ORI": //Auftragsstatusmeldung: Diese Meldung wird benutzt um den Leitrechner über den aktuellen Status eines Pakets zu informieren
                 this.ORI(msg);
                 break;
+            case "STI":
+                this.STIhandler(msg)
+                break;
             default:
                 break;
         }
@@ -87,6 +103,9 @@ module.exports = class communicationPLC extends EventEmitter {
                 break;
             case "TIU":
                 this.TIUreceive(msg);
+                break;
+            case "STI":
+                this.STIhandler(msg)
                 break;
             default:
                 break;
@@ -107,6 +126,66 @@ module.exports = class communicationPLC extends EventEmitter {
         this.TIUsend(this.Production, "PRD");
         this.TIUsend(this.SteinConveyor, "KOM");
         this.TIUsend(this.Warehouse, "LAG");
+    }
+
+    STIhandler(msg){
+        let system = msg.head.clientID//msg.data.substr(4, 3);
+        let operatingMode = msg.data.substr(4, 3)//msg.data.substr(8, 3);
+        let status = msg.data.substr(7, 3) // msg.data.substr(12, 3);
+
+        switch (operatingMode) {
+            case 'AUS':
+                operatingMode = 'Ausgeschaltet';
+                break;
+            case 'MAN':
+                operatingMode = 'Handbetrieb';
+                break;
+            case 'INS':
+                operatingMode = 'Inselbetrieb';
+                break;
+            case 'AUT':
+                operatingMode = 'Automatikbetrieb';
+                break;
+            default:
+                break;
+        }  
+        switch (status) {
+            case 'RDY':
+                status = 'Bereit';
+                break;
+            case 'WAR':
+                status = 'Warnung';
+                break;
+            case 'ERR':
+                status = 'Gestört';
+                break;
+            default:
+                break;
+        }
+
+        switch (system) {
+                case 'PRD':
+                case 'PRO':
+                    this.systemInfo.PRD.operatingMode = operatingMode;
+                    this.systemInfo.PRD.status = status
+                    break;
+                case 'PUF':
+                    this.systemInfo.PUF.operatingMode = operatingMode;
+                    this.systemInfo.PUF.status = status
+                    break;
+                case 'KOM':
+                    this.systemInfo.KOM.operatingMode = operatingMode;
+                    this.systemInfo.KOM.status = status
+                    break;
+                case 'LAG':
+                    this.systemInfo.LAG.operatingMode = operatingMode;
+                    this.systemInfo.LAG.status = status
+                    break;
+                default:
+                    break;
+            }
+            console.log(this.systemInfo)
+            this.emit('STI', this.systemInfo)
     }
 
     formatDateTime(dateObj) {
