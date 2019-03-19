@@ -1,80 +1,158 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
   <h1 class="h2">Dashboard</h1>
 </div>
-    <h4>Verkaufte Spiele</h4>
+<h4>Verkaufte Spiele</h4>
 <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
 
+<h4>Anlagenzustand</h4>
+
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col" style="width: 45%">Anlagenteil</th>
+        <th scope="col" style="width: 40%">Betriebsart</th>
+        <th scope="col" style="width: 30%">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr id="PRD">
+        <th scope="row">Produktion</th>
+        <td>
+          <div id="PRDbetriebsart">test</div>
+        </td>
+        <td>
+          <div id="PRDstatus">test</div>
+        </td>
+      </tr>
+      <tr id="PUF">
+        <th scope="row">Puffer</th>
+        <td>
+          <div id="PUFbetriebsart">test</div>
+        </td>
+        <td>
+          <div id="PUFstatus">test</div>
+        </td>
+      </tr>
+      <tr id="KOM">
+        <th scope="row">Kommissionierung</th>
+        <td>
+          <div id="KOMbetriebsart">test</div>
+        </td>
+        <td>
+          <div id="KOMstatus">test</div>
+        </td>
+      </tr>
+      <tr id="LAG">
+        <th scope="row">Lager</th>
+        <td>
+          <div id="LAGbetriebsart">test</div>
+        </td>
+        <td>
+          <div id="LAGstatus">test</div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 <!-- Graphs -->
 <script src="/node_modules/chart.js/dist/Chart.min.js"></script>
+<script>
+
+</script>
 
 
 <script>
-  var data = {
-    datasets: [{
-      data: [],
-      backgroundColor: [
-        "rgba(255, 99, 132, 0.5)",
-        "rgba(75, 192, 192, 0.5)",
-        "rgba(255, 205, 86, 0.5)",
-        "rgba(201, 203, 207, 0.5)",
-        "rgba(54, 162, 235, 0.5)",
-        "rgba(40, 99, 132, 0.5)",
-        "rgba(75, 57, 192, 0.5)",
-        "rgba(255, 24, 86, 0.5)",
-        "rgba(79, 203, 107, 0.5)",
-        "rgba(54, 162, 75, 0.5)"
-      ],
-      borderColor: [
-        "rgba(255, 99, 132, 0.5)",
-        "rgba(75, 192, 192, 0.5)",
-        "rgba(255, 205, 86, 0.5)",
-        "rgba(201, 203, 207, 0.5)",
-        "rgba(54, 162, 235, 0.5)",
-        "rgba(40, 99, 132, 0.5)",
-        "rgba(75, 57, 192, 0.5)",
-        "rgba(255, 24, 86, 0.5)",
-        "rgba(79, 203, 107, 0.5)",
-        "rgba(54, 162, 75, 0.5)"
-      ]
-    }],
-    // These labels appear in the legend and in the tooltips when hovering different arcs
-    labels: []
-  };
-  socket.removeAllListeners()
+  $(document).ready(function () {
+
+    const data = {
+      datasets: [{
+        data: [],
+        backgroundColor: [
+          "rgba(255, 99, 132, 0.5)",
+          "rgba(75, 192, 192, 0.5)",
+          "rgba(255, 205, 86, 0.5)",
+          "rgba(201, 203, 207, 0.5)",
+          "rgba(54, 162, 235, 0.5)",
+          "rgba(40, 99, 132, 0.5)",
+          "rgba(75, 57, 192, 0.5)",
+          "rgba(255, 24, 86, 0.5)",
+          "rgba(79, 203, 107, 0.5)",
+          "rgba(54, 162, 75, 0.5)"
+        ],
+        borderColor: [
+          "rgba(255, 99, 132, 0.5)",
+          "rgba(75, 192, 192, 0.5)",
+          "rgba(255, 205, 86, 0.5)",
+          "rgba(201, 203, 207, 0.5)",
+          "rgba(54, 162, 235, 0.5)",
+          "rgba(40, 99, 132, 0.5)",
+          "rgba(75, 57, 192, 0.5)",
+          "rgba(255, 24, 86, 0.5)",
+          "rgba(79, 203, 107, 0.5)",
+          "rgba(54, 162, 75, 0.5)"
+        ]
+      }],
+      // These labels appear in the legend and in the tooltips when hovering different arcs
+      labels: []
+    };
+    socket.removeAllListeners()
 
 
-  socket.emit('dashboardData');
+    socket.emit('dashboardData');
+    socket.on('loadDashboardChart', function (res) {
+      console.log(res)
 
-  socket.on('loadDashboardData', function (res) {
-    console.log(res)
+      removeData(data)
 
-    removeData(data)
+      res.forEach((element, i) => {
+        addData(myChart, element.productName, element.totalOrdered)
+      });
+      myChart.update()
+    })
+    console.log(data)
 
-    res.forEach((element, i) => {
-      addData(myChart, element.productName, element.totalOrdered)
+    function addData(chart, label, data) {
+      chart.data.labels.push(label);
+      chart.data.datasets.forEach((dataset) => {
+        dataset.data.push(data);
+      });
+    }
+
+    function removeData(data) {
+      data.labels = []
+      data.datasets.forEach((dataset) => {
+        dataset.data = []
+      });
+    }
+
+    var ctx = document.getElementById("myChart");
+    var myChart = new Chart(ctx, {
+      data: data,
+      type: 'polarArea',
     });
-    myChart.update()
+
+
+    socket.on("loadSystemStatus", function (data) {
+      console.log(data)
+      Object.keys(data).forEach(Objkey => {
+        document.getElementById(`${Objkey}betriebsart`).innerHTML = data[Objkey].operatingMode
+        document.getElementById(`${Objkey}status`).innerHTML = data[Objkey].status
+        switch (data[Objkey].status) {
+          case 'Warnung':
+            document.getElementById(Objkey).className = 'table-warning'
+            break;
+          case 'Gestört':
+            document.getElementById(Objkey).className = 'table-danger'
+            break;
+          default:
+            document.getElementById(Objkey).className = ''
+            break;
+        }
+      });
+
+    })
   })
-  console.log(data)
 
-  function addData(chart, label, data) {
-    chart.data.labels.push(label);
-    chart.data.datasets.forEach((dataset) => {
-      dataset.data.push(data);
-    });
-  }
-
-  function removeData(data) {
-    data.labels = []
-    data.datasets.forEach((dataset) => {
-      dataset.data = []
-    });
-  }
-
-  var ctx = document.getElementById("myChart");
-  var myChart = new Chart(ctx, {
-    data: data,
-    type: 'polarArea',
-  });
 </script>
