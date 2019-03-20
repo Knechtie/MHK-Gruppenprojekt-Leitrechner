@@ -39,47 +39,47 @@
 
 <script>
     var view = {
-        products: [ ]
-      }
+        products: []
+    }
 
-      function mustache(){
+    function mustache() {
         var template = $('#template').html();
         Mustache.parse(template);   // optional, speeds up future uses
         var rendered = Mustache.render(template, view);
-        
-        $('#target').html(rendered).promise().done(function(){
-          view.products.forEach(element => {
-            drawProduct(element.drillParameters,`line${element.productID}`, element.size, 0.3);
-          });         
-        });    
-      }   
-    </script>
+
+        $('#target').html(rendered).promise().done(function () {
+            view.products.forEach(element => {
+                drawProduct(element.drillParameters, `line${element.productID}`, element.size, 0.3);
+            });
+        });
+    }   
+</script>
 
 <script>
     socket.removeAllListeners()
     loadTable()
-        window.setInterval(loadTable, 10000)
+    window.setInterval(loadTable, 10000)
 
-        function loadTable(){
-            socket.emit('getProductsAdmin')
-        }
-        socket.on('loadProductsAdmin', function(msg){
-            console.log(msg);
-            msg.forEach(element => {
-                if (element.deprecated){
-                    element.deprecated = "Ja"
-                }
-                if (element.size == 1){
-                    element.size = "klein"
-                }
-                else if (element.size == 2){
-                    element.size = "groß"
-                }
-            });
-            view.products = msg
-            mustache()
+    function loadTable() {
+        socket.emit('getProductsAdmin')
+    }
+    socket.on('loadProductsAdmin', function (msg) {
+        console.log(msg);
+        msg.forEach(element => {
+            if (element.deprecated) {
+                element.deprecated = "Ja"
+            }
+            if (element.size == 1) {
+                element.size = "klein"
+            }
+            else if (element.size == 2) {
+                element.size = "groß"
+            }
         });
-  </script>
+        view.products = msg
+        mustache()
+    });
+</script>
 
 
 <h4>Produkt definieren</h4>
@@ -188,7 +188,8 @@
 <h4>Produkt abkündigen</h4>
 
 <div class="alert alert-secondary" role="alert" id="messageBoxEdit">
-    <p>Wenn ein Produkt abgekündigt ist, wird es bei erreichen der Stückzahl 0 automatisch beim nächsten Start des Leitrechners gelöscht.</p>
+    <p>Wenn ein Produkt abgekündigt ist, wird es bei erreichen der Stückzahl 0 automatisch beim nächsten Start des
+        Leitrechners gelöscht.</p>
 </div>
 <form class="needs-validation mb-3" novalidate>
     <div class="col-md-12 mb-3">
@@ -245,15 +246,20 @@
         }
 
         var countDeprecated = 0
+        var countProducts = view.products.length
+
         view.products.forEach(element => {
-            if (element.deprecated) {
+            if (element.deprecated && element.countOnStock == 0) {
+                countProducts -= 1
+            }
+            else if (element.deprecated) {
                 countDeprecated += 1
             }
         });
 
-        var countActive = view.products.length - countDeprecated
+        var countActive = countProducts - countDeprecated
 
-        if (countActive >= 2 || view.products.length >= 3) {
+        if (countActive >= 2 || countProducts >= 3) {
             document.getElementById("messageBoxCreate").className = "alert alert-danger";
             return
         } else {
@@ -298,7 +304,7 @@
         var editProduct = {
             productID: $('#productID').val(),
         }
-       
+
         socket.emit('editProduct', editProduct);
         alert(`Artikel ${$('#productID').val()} wird abgekündigt...`)
     })
